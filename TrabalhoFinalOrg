@@ -28,100 +28,98 @@ msg_jogada_invalida: .asciz "Jogada invalida, tente novamente.\n"
 msg_vitoria_jogador1: .asciz "Jogador 1 (X) venceu!\n"
 msg_vitoria_jogador2: .asciz "Jogador 2 (O) venceu!\n"
 msg_empate: .asciz "Empate!\n"
-newline: .asciz "\n"               # Caractere de nova linha
+msg_coluna_invalida: .asciz "Coluna inválida, tente novamente.\n"
+newline: .asciz "\n"               
+contador_total_jogadas: .word 0   
+contador_vitorias: .word 0         
+contador_derrotas: .word 0         
 
-# Variáveis para contadores (exemplo: total de jogadas, vitórias, etc.)
-contador_total_jogadas: .word 0   # Exemplo de contador
-contador_vitorias: .word 0         # Exemplo de contador
-contador_derrotas: .word 0         # Exemplo de contador
-
-tabuleiro:         .space 216  
+tabuleiro:         .space 216
 
 .text
 .globl main
 main:
 
-    # Exibe o menu principal
-    li a7, 4                       # Chamada de sistema para imprimir
-    la a0, prompt_menu             # Carrega o endereço da string do menu principal
-    ecall                          # Executa a chamada de sistema
 
-    # Lê a escolha do usuário
-    li a7, 5                       # Chamada de sistema para ler a entrada
-    ecall                          # Executa a chamada de sistema
-    mv t0, a0                      # Move o valor lido para t0
+    li a7, 4                       
+    la a0, prompt_menu             
+    ecall                          
 
-    # Verifica qual opção foi escolhida
-    li t1, 1                       # Verifica se a opção é 1 (Configuração)
+
+    li a7, 5                       
+    ecall                        
+    mv t0, a0                    
+
+
+    li t1, 1                       
     beq t0, t1, configuracao       
 
-    li t1, 2                       # Verifica se a opção é 2 (Jogar)
+    li t1, 2                       
     beq t0, t1, jogar              
 
-    li t1, 3                       # Verifica se a opção é 3 (Sair)
+    li t1, 3                     
     beq t0, t1, sair               
 
-    # Se nenhuma das opções for válida, exibe uma mensagem de erro e retorna ao menu principal
+
     li a7, 4                       
     la a0, opcao_invalida          
     ecall                          
-    j main                         # Retorna ao início
+    j main                         
 
 configuracao:
     li a7, 4                       
-    la a0, prompt_config            # Carrega o endereço do menu de configuração
+    la a0, prompt_config           
     ecall
 
-    li a7, 5                       # Lê a escolha do submenu de configuração
+    li a7, 5                       
     ecall
     mv t1, a0
 
-    # Verifica a configuração escolhida e realiza as ações correspondentes
-    li t2, 1                       # Quantidade de jogadores
+
+    li t2, 1                      
     beq t1, t2, qtd_jogadores
 
-    li t2, 2                       # Tamanho do tabuleiro
+    li t2, 2                      
     beq t1, t2, tamanho_tabuleiro
 
-    li t2, 3                       # Modo de dificuldade
+    li t2, 3                       
     beq t1, t2, modo_dificuldade
 
-    li t2, 4                       # Zerar contadores
+    li t2, 4                      
     beq t1, t2, zerar_contadores
 
-    li t2, 5                       # Mostrar configurações
+    li t2, 5                       
     beq t1, t2, mostrar_configuracoes
     
     li t2, 6
     beq t1, t2, main
 
-    j configuracao                 # Retorna ao submenu de configuração
+    j configuracao                 
 
 qtd_jogadores:
     li a7, 4
-    la a0, qtd_jogadores_msg       # Carrega a mensagem "Quantidade de jogadores (1 ou 2):"
-    ecall                          # Exibe a mensagem
+    la a0, qtd_jogadores_msg      
+    ecall                         
 
-    li a7, 5                       # Chamada de sistema para ler a entrada (syscall 5)
-    ecall                          # Lê o valor digitado em a0 (ASCII)
+    li a7, 5                     
+    ecall                         
 
-    li t3, 10                      # ASCII de 'newline' (\n)
-    beq a0, t3, qtd_jogadores      # Se o valor lido for '\n', lê de novo
+    li t3, 10                      
+    beq a0, t3, qtd_jogadores      
 
-    li t1, 1                      # ASCII de '1'
-    li t2, 2                      # ASCII de '2'
-    beq a0, t1, um_jogador         # Se for '1', vai para um_jogador
-    beq a0, t2, dois_jogadores     # Se for '2', vai para dois_jogadores
+    li t1, 1                    
+    li t2, 2                    
+    beq a0, t1, um_jogador        
+    beq a0, t2, dois_jogadores    
 
     li a7, 4
-    la a0, opcao_invalida          # Exibe "Opção inválida"
+    la a0, opcao_invalida        
     ecall
-    j qtd_jogadores                # Volta para pedir a entrada novamente
-
+    j qtd_jogadores             
 um_jogador:
-    li s0, 1                       # Armazena a quantidade de jogadores
+    li s0, 1                       
     li a7, 4                       
-    la a0, msg_de_um_jogador        # Exibe a mensagem "Um jogador escolhido"
+    la a0, msg_de_um_jogador      
     ecall
     j configuracao                 # Volta para o menu de configuração
 
@@ -214,7 +212,7 @@ zerar_contadores:
     la t0, contador_derrotas        # Carrega o endereço do contador_derrotas
     sw a0, 0(t0)                   # Armazena 0 no contador_derrotas
 
-    # Exibe a mensagem de confirmação
+
     li a7, 4
     la a0, contadores_zerados_msg  
     ecall
@@ -281,9 +279,55 @@ mostrar_configuracoes:
 
     # Retorna ao menu de configuração
     j configuracao
+# Função para inicializar o tabuleiro
+inicializa_tabuleiro:
+    la t2, tabuleiro        # Endereço base do tabuleiro
+    li t0, 6                # Número de linhas (6)
+    li t1, 9                # Número de colunas (9)
+    
+loop_linhas:
+    li t3, 0                # Inicializa a coluna
+loop_colunas:
+    sb zero, 0(t2)          # Define a célula como vazia (valor 0)
+    addi t2, t2, 1          # Avança para a próxima célula
+    addi t3, t3, 1          # Incrementa a coluna atual
+    blt t3, t1, loop_colunas # Continua até o final da linha
+    addi t0, t0, -1         # Decrementa o número de linhas
+    bgtz t0, loop_linhas    # Continua até o final do tabuleiro
+    li a7, 4
+    la a0, msg_tabuleiro_inicializado # Exibe mensagem de sucesso
+    ecall
+    jr ra                   # Retorna da função
 
-# Função principal do jogo
-jogar:
+# Função para imprimir o tabuleiro
+imprime_tabuleiro:
+    la t0, tabuleiro        # Carrega o endereço base do tabuleiro
+    li t1, 6                # Número de linhas (6)
+    li t2, 9                # Número de colunas (9)
+
+loop_linhas_imprime:
+    li t3, 0                # Inicializa o contador de colunas
+loop_colunas_imprime:
+    lb a0, 0(t0)            # Carrega o valor da célula
+    addi a0, a0, 48         # Converte o valor para caractere ASCII ('0', '1', '2')
+    li a7, 4                # Syscall para imprimir caractere
+    ecall                   # Imprime o valor da célula
+    addi t0, t0, 1          # Avança para a próxima célula
+    addi t3, t3, 1          # Incrementa o contador de colunas
+    blt t3, t2, loop_colunas_imprime # Continua até o final da linha
+
+    # Imprime uma nova linha após o término de cada linha
+    li a7, 4
+    la a0, newline          # Carrega o caractere de nova linha
+    ecall                   # Imprime a nova linha
+
+    addi t1, t1, -1         # Decrementa o contador de linhas
+    bgtz t1, loop_linhas_imprime # Continua até o final do tabuleiro
+    jr ra                   # Retorna da função
+
+# Função de "Jogar" principal
+jogar:            
+
     jal inicializa_tabuleiro       # Inicializa o tabuleiro vazio
     li s3, 0                       # Inicializa o turno (0 para jogador 1, 1 para jogador 2)
 
@@ -323,9 +367,9 @@ turno_jogador2:
 
 # Função para inserir a peça no tabuleiro
 insere_peca:
-    li t3, 6                        # Número de linhas (tabuleiro 7x6)
+    li t3, 6                        # Número de linhas (6)
     la t4, tabuleiro                # Endereço base do tabuleiro
-    mul t5, t2, t3                  # Calcula a posição da coluna escolhida
+    mul t5, t2, t3                  # Calcula a posição da coluna escolhida (coluna * número de linhas)
     add t4, t4, t5                  # Move para a coluna apropriada
 
     li t6, 0                        # Loop para encontrar a próxima linha vazia
@@ -335,7 +379,7 @@ loop_insere:
     addi t4, t4, 1                  # Avança para a próxima linha (de baixo para cima)
     addi t6, t6, 1                  # Incrementa o contador de linha
     blt t6, t3, loop_insere         # Continua o loop até o final da coluna
-    jr ra                           # Se a coluna estiver cheia, retorna sem fazer nada
+    j coluna_cheia                  # Caso a coluna esteja cheia, pula para tratar
 
 coloca_peca:
     # Insere a peça dependendo de quem está jogando
@@ -348,6 +392,14 @@ jogador1_peca:
     sb t6, 0(t4)                    # Armazena a peça 'X'
     jr ra                           # Retorna
 
+# Novo rótulo para tratar quando a coluna estiver cheia
+coluna_cheia:
+    li a7, 4
+    la a0, msg_coluna_invalida      # Exibe mensagem de "coluna cheia, tente novamente"
+    ecall
+    j selecionar_coluna             # Volta para o jogador selecionar outra coluna
+
+
 # Função para selecionar a coluna (lê a entrada do jogador)
 selecionar_coluna:
     li a7, 4
@@ -355,9 +407,21 @@ selecionar_coluna:
     ecall
 
     li a7, 5                        # Chamada de sistema para ler a entrada
-    ecall                           # Lê o valor digitado (0 a 5)
-    mv a0, a0                       # Retorna a coluna selecionada
+    ecall                           # Lê o valor digitado (0 a 8)
+    addi a0, a0, -48                # Converte de ASCII para número
+    
+    li t1, 0
+    blt a0, t1, coluna_invalida      # Verifica se a coluna é válida (0-8)
+    li t1, 9
+    bge a0, t1, coluna_invalida
     jr ra
+
+coluna_invalida:
+    li a7, 4
+    la a0, msg_coluna_invalida      # Exibe mensagem de coluna inválida
+    ecall
+    j selecionar_coluna             # Tenta novamente
+
 
 # Função para verificar se há uma vitória
 verifica_vitoria:
@@ -365,53 +429,11 @@ verifica_vitoria:
     # Se um jogador ganhar, exibir a mensagem de vitória e retornar ao menu principal
     jr ra                           # Retorna
 
-
 sair:
     li a7, 10                    
     ecall
     
 
 
-# Função para inicializar o tabuleiro
-inicializa_tabuleiro:
-    la t2, tabuleiro        # Endereço base do tabuleiro
 
-loop_linhas:
-    li t3, 0                # Inicializa a coluna
-loop_colunas:
-    sb zero, 0(t2)          # Define a célula como vazia (valor 0)
-    addi t2, t2, 1          # Avança para a próxima célula
-    addi t3, t3, 1          # Incrementa a coluna atual
-    blt t3, t1, loop_colunas # Continua até o final da linha
-    addi t0, t0, -1         # Decrementa o número de linhas
-    bgtz t0, loop_linhas    # Continua até o final do tabuleiro
-    li a7, 4
-    la a0, msg_tabuleiro_inicializado # Exibe mensagem de sucesso
-    ecall
-    jr ra                   # Retorna da função
 
-# Função para imprimir o tabuleiro
-imprime_tabuleiro:
-    la t0, tabuleiro        # Carrega o endereço base do tabuleiro
-    li t1, 7                # Número de linhas (ajuste de acordo com o tabuleiro escolhido)
-    li t2, 6                # Número de colunas
-
-loop_linhas_imprime:
-    li t3, 0                # Inicializa o contador de colunas
-loop_colunas_imprime:
-    lb a0, 0(t0)            # Carrega o valor da célula
-    addi a0, a0, 48         # Converte o valor para caractere ASCII ('0' ou '1')
-    li a7, 4                # Syscall para imprimir caractere
-    ecall                   # Imprime o valor da célula
-    addi t0, t0, 1          # Avança para a próxima célula
-    addi t3, t3, 1          # Incrementa o contador de colunas
-    blt t3, t2, loop_colunas_imprime # Continua até o final da linha
-
-    # Imprime uma nova linha após o término de cada linha
-    li a7, 4
-    la a0, newline          # Carrega o caractere de nova linha
-    ecall                   # Imprime a nova linha
-
-    addi t1, t1, -1         # Decrementa o contador de linhas
-    bgtz t1, loop_linhas_imprime # Continua até o final do tabuleiro
-    jr ra                   # Retorna da função
