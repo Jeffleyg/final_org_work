@@ -280,231 +280,186 @@ mostrar_configuracoes:
     j configuracao
 
 
-    
-
+# Fun��o de "Jogar" principal
 jogar:
-    # Inicializa o tabuleiro
-    jal inicializa_tabuleiro
-    li s3, 0  # Jogador 1 começa
+    jal inicializa_tabuleiro       # Inicializa o tabuleiro vazio
+    li s3, 0                       # Inicializa o turno (0 para jogador 1, 1 para jogador 2)
 
 loop_jogo:
-    # Exibe o tabuleiro
-    jal exibir_tabuleiro
+    jal imprime_tabuleiro          # Imprime o tabuleiro
 
-    # Verifica de quem é a vez
-    beq s3, x0, jogador1_turno
-    li t3, 1
-    beq s3, t3, jogador2_turno
+    # Alterna entre os jogadores
+    beqz s3, turno_jogador1        # Se turno == 0, � o Jogador 1
+    jal turno_jogador2             # Se turno == 1, � o Jogador 2
 
-jogador1_turno:
+    # Verifica se algu�m venceu ou se houve empate
+    jal verifica_vencedor
+
+    # Continua o loop do jogo
+    j loop_jogo
+    
+verifica_vencedor:
+    # Implementa��o de verifica��o de vit�ria pode ser feita aqui
+    # Por enquanto, apenas retorna sem fazer nada
+    jr ra                           # Retorna da fun��o
+    
+turno_jogador1:
     li a7, 4
     la a0, msg_jogador1
     ecall
 
-    li a7, 5
-    ecall
-    mv t0, a0
+    jal selecionar_coluna          # Jogador 1 seleciona a coluna
+    mv t2, a0                      # Salva a coluna selecionada em t2
 
-    # Verifica se a jogada é válida
-    jal verificar_jogada
-    beq t1, x0, jogada_invalida
+    jal insere_peca                # Insere a pe�a 'X' no tabuleiro
+    li s3, 1                       # Troca o turno para o Jogador 2
+    jr ra                          # Retorna para o loop do jogo
 
-    # Atualiza o tabuleiro com a jogada do jogador 1
-    jal atualizar_tabuleiro_jogador1
-
-    # Verifica se o jogador 1 venceu
-    jal verificar_vitoria
-    li t4, 1
-    beq t0, t4, jogador1_venceu
-
-    # Passa a vez para o jogador 2
-    li s3, 1
-    j loop_jogo
-
-jogador2_turno:
+turno_jogador2:
     li a7, 4
     la a0, msg_jogador2
     ecall
 
-    li a7, 5
-    ecall
-    mv t0, a0
+    jal selecionar_coluna          # Jogador 2 seleciona a coluna
+    mv t2, a0                      # Salva a coluna selecionada em t2
 
-    # Verifica se a jogada é válida
-    jal verificar_jogada
-    beq t1, x0, jogada_invalida
+    jal insere_peca                # Insere a pe�a 'O' no tabuleiro
+    li s3, 0                       # Troca o turno para o Jogador 1
+    jr ra                          # Retorna para o loop do jogo
 
-    # Atualiza o tabuleiro com a jogada do jogador 2
-    jal atualizar_tabuleiro_jogador2
-
-    # Verifica se o jogador 2 venceu
-    jal verificar_vitoria
-    li t4, 1
-    beq t0, t4, jogador2_venceu
-
-    # Passa a vez para o jogador 1
-    li s3, 0
-    j loop_jogo
-
-jogada_invalida:
+# Fun��o para selecionar a coluna
+selecionar_coluna:
     li a7, 4
-    la a0, msg_jogada_invalida
+    la a0, msg_selecione_coluna     # Exibe a mensagem "Selecione uma coluna"
     ecall
-    j loop_jogo
 
-jogador1_venceu:
+    li a7, 5                        # Chamada de sistema para ler a entrada
+    ecall                           # L� o valor digitado (esperando de 0 a 5)
+
+    # Se o n�mero estiver entre '0' (48) e '5' (53), converte o valor de ASCII para n�mero
+    li t1, 0                       # ASCII '0'
+    li t2, 5                       # ASCII '5'
+    blt a0, t1, coluna_invalida      # Verifica se o n�mero � menor que '0'
+    bgt a0, t2, coluna_invalida      # Verifica se o n�mero � maior que '5'
+
+    # Converte de ASCII para n�mero
+    addi a0, a0, -1                # Subtrai 48 para converter de ASCII para n�mero (0 a 5)
+
+    mv t2, a0
+    # Se tudo estiver correto, retorna
+    jr ra
+
+coluna_invalida:
     li a7, 4
-    la a0, msg_vitoria_jogador1
+    la a0, msg_coluna_invalida      # Exibe mensagem de coluna inv�lida
     ecall
-    j main
+    j selecionar_coluna             # Tenta novamente
 
-jogador2_venceu:
+# Fun��o para inserir a pe�a no tabuleiro
+insere_peca:
+    li t3, 6                        # N�mero de linhas (6)
+    la t4, tabuleiro                # Endere�o base do tabuleiro
+    mul t5, t2, t3                  # Calcula a posi��o da coluna escolhida (coluna * n�mero de linhas)
+    add t4, t4, t5                  # Move para a coluna apropriada
+
+    li t6, 0                        # Loop para encontrar a pr�xima linha vazia
+loop_insere:
+    lw t6, 0(t4)                    # Carrega o valor da c�lula
+    beqz t6, coloca_peca            # Se a c�lula estiver vazia (0), insere a pe�a
+    addi t4, t4, 4                  # Avan�a para a pr�xima linha (de baixo para cima)
+    addi t6, t6, 1                  # Incrementa o contador de linha
+    blt t6, t3, loop_insere         # Continua o loop at� o final da coluna
+    j coluna_cheia                  # Caso a coluna esteja cheia, pula para tratar
+
+coloca_peca:
+    # Insere a pe�a dependendo de quem est� jogando
+    beqz s3, jogador1_peca          # Jogador 1 insere 'X'
+    li t6, 2                        # Jogador 2 insere 'O' (2)
+    sw t6, 0(t4)                    # Armazena a pe�a 'O'
+    jr ra                           # Retorna
+jogador1_peca:
+    li t6, 1                        # Jogador 1 insere 'X' (1)
+    sw t6, 0(t4)                    # Armazena a pe�a 'X'
+    jr ra                           # Retorna
+
+coluna_cheia:
     li a7, 4
-    la a0, msg_vitoria_jogador2
+    la a0, msg_coluna_invalida      # Exibe mensagem de "coluna cheia, tente novamente"
     ecall
-    j main
+    j selecionar_coluna             # Volta para o jogador selecionar outra coluna
 
+# Fun��o para verificar se h� uma vit�ria
+verifica_vitoria:
+    # Aqui voc� deve implementar a l�gica para verificar linhas, colunas e diagonais
+    # Se um jogador ganhar, exibir a mensagem de vit�ria e retornar ao menu principal
+    jr ra                           # Retorna
+    
+# Fun��o para inicializar o tabuleiro
 inicializa_tabuleiro:
-    la t2, tabuleiro
-    li t0, 6
-    li t1, 7
-    # Inicializa todas as posições do tabuleiro com 0
-    inicializa_loop:
-        beq t0, x0, inicializa_fim
-        li t3, 7
-        inicializa_coluna:
-            beq t3, x0, inicializa_proxima_linha
-            sw zero, 0(t2)
-            addi t2, t2, 4
-            addi t3, t3, -1
-            j inicializa_coluna
-        inicializa_proxima_linha:
-            addi t0, t0, -1
-            j inicializa_loop
-    inicializa_fim:
-        jr ra
-
-exibir_tabuleiro:
-    # Exibe o cabeçalho das colunas
-    li a7, 4
-    la a0, col_header
-    ecall
+    la t2, tabuleiro        # Endere�o base do tabuleiro
+    li t0, 6                # N�mero de linhas (6)
+    li t1, 9                # N�mero de colunas (9)
     
-    # Exibe cada linha do tabuleiro
-    la t2, tabuleiro
-    li t0, 6
-exibir_linha:
-    beq t0, x0, exibir_fim
-    li t1, 7
-exibir_coluna:
-    beq t1, x0, exibir_proxima_linha
-    lw t3, 0(t2)   # Carrega o valor da célula do tabuleiro em t3
     
-    # Verifica o valor e exibe o símbolo correspondente
-    li t4, 0       # Valor 0 representa um espaço vazio "-"
-    beq t3, t4, exibir_espaco_vazio
-    
-    li t4, 1       # Valor 1 representa o Jogador 1 ("X" ou "#")
-    beq t3, t4, exibir_jogador1
-    
-    li t4, 2       # Valor 2 representa o Jogador 2 ("O" ou "&")
-    beq t3, t4, exibir_jogador2
-
-exibir_espaco_vazio:
-    la a0, dash    # Exibe o "-"
-    li a7, 4
-    ecall
-    j proximo_elemento
-
-exibir_jogador1:
-    la a0, jogador1_peca  # Exibe o "#"
-    li a7, 4
-    ecall
-    j proximo_elemento
-
-exibir_jogador2:
-    la a0, jogador2_peca  # Exibe o "&"
-    li a7, 4
+# Fun��o para imprimir o tabuleiro
+imprime_tabuleiro:
+    # Imprime o cabe�alho das colunas
+    li a7, 4                    # Chamada de sistema para imprimir string
+    la a0, col_header           # Carregar o cabe�alho "0 1 2 3 4 5 6"
     ecall
 
-proximo_elemento:
-    addi t2, t2, 4        # Move para a próxima célula
-    addi t1, t1, -1
-    j exibir_coluna
+    la t0, tabuleiro            # Carrega o endere�o base do tabuleiro
+    li t1, 6                    # N�mero de linhas
+    li t2, 7                    # N�mero de colunas
+    
+imprime_linhas:
+    li t3, 0                    # Contador de colunas dentro da linha
 
-exibir_proxima_linha:
+imprime_colunas:
+    lw t4, 0(t0)                # Carrega o valor da c�lula atual do tabuleiro (word)
+    li t5, 0                    # Verifica se � zero
+
+    # Se for zero, imprime "-"
+    beq t4, t5, imprime_vazio   
+
+    # Se n�o for zero, verifica o valor da pe�a
+    li t5, 1                    # Se for 1, imprime "#"
+    beq t4, t5, imprime_jogador1
+
+    li t5, 2                    # Se for 2, imprime "&"
+    beq t4, t5, imprime_jogador2
+
+imprime_vazio:
+    li a7, 4                    # Chamada de sistema para imprimir string
+    la a0, dash                 # Imprimir "-"
+    ecall
+    j proxima_celula
+
+imprime_jogador1:
+    li a7, 4                    # Chamada de sistema para imprimir string
+    la a0, jogador1_peca        # Imprimir "#"
+    ecall
+    j proxima_celula
+
+imprime_jogador2:
+    li a7, 4                    # Chamada de sistema para imprimir string
+    la a0, jogador2_peca        # Imprimir "&"
+    ecall
+
+proxima_celula:
+    addi t0, t0, 4              # Move para a pr�xima c�lula (word)
+    addi t3, t3, 1              # Incrementa o contador de colunas
+    blt t3, t2, imprime_colunas # Continua imprimindo as colunas
+
+    # Imprime uma nova linha ap�s cada linha do tabuleiro
     li a7, 4
     la a0, newline        # Exibe uma nova linha
     ecall
-    addi t0, t0, -1
-    j exibir_linha
 
-exibir_fim:
-    jr ra
+    addi t1, t1, -1             # Decrementa o contador de linhas
+    bgtz t1, imprime_linhas     # Continua at� o final do tabuleiro
+    jr ra                       # Retorna da fun��o
 
-verificar_jogada:
-    # Verifica se a jogada é válida (coluna dentro do limite e não cheia)
-    # Implementação simplificada
-    li t1, 1  # Supondo que a jogada é válida
-    jr ra
-
-atualizar_tabuleiro_jogador1:
-    la t2, tabuleiro      # Carrega o endereço do tabuleiro
-    mv t5, t0             # t0 contém a coluna escolhida pelo jogador 1
-
-    li t1, 6              # Começa na linha mais baixa (linha 6)
-
-procura_linha_livre_jogador1:
-    li t4, 7
-    mul t3, t1, t4        # Calcula o deslocamento para a linha atual (multiplica por 7)
-    add t3, t3, t5        # Soma o deslocamento da coluna (escolhida pelo jogador)
-    slli t3, t3, 2        # Multiplica por 4 para acessar o endereço da célula correta (4 bytes por célula)
-    add t6, t2, t3
-    lw t4, 0(t6)      # Carrega o valor da célula (0, 1 ou 2)
-
-    beq t4, x0, encontrou_linha_livre_jogador1   # Se a célula está vazia (0), pode colocar a peça
-    addi t1, t1, -1       # Move para a linha acima
-    bnez t1, procura_linha_livre_jogador1   # Continua subindo até achar uma célula vazia
-    j fim_atualizar_jogador1  # Se não encontrar uma célula livre, termina (o jogo deve verificar essa condição)
-
-encontrou_linha_livre_jogador1:
-    li t4, 1              # Coloca a peça do jogador 1 (1 representa o jogador 1)
-    sw t4, 0(t6)      # Atualiza a célula com o valor 1
-
-fim_atualizar_jogador1:
-    jr ra                 # Retorna ao chamador
-
-atualizar_tabuleiro_jogador2:
-    la t2, tabuleiro      # Carrega o endereço do tabuleiro
-    mv t5, t0             # t0 contém a coluna escolhida pelo jogador 2
-
-    li t1, 6              # Começa na linha mais baixa (linha 6)
-
-procura_linha_livre_jogador2:
-    li t4, 7
-    mul t3, t1, t4         # Calcula o deslocamento para a linha atual (multiplica por 7)
-    add t3, t3, t5        # Soma o deslocamento da coluna (escolhida pelo jogador)
-    slli t3, t3, 2        # Multiplica por 4 para acessar o endereço da célula correta (4 bytes por célula)
-    add t6, t2, t3
-    lw t4, 0(t6)      # Carrega o valor da célula (0, 1 ou 2)
-
-    beq t4, x0, encontrou_linha_livre_jogador2   # Se a célula está vazia (0), pode colocar a peça
-    addi t1, t1, -1       # Move para a linha acima
-    bnez t1, procura_linha_livre_jogador2   # Continua subindo até achar uma célula vazia
-    j fim_atualizar_jogador2  # Se não encontrar uma célula livre, termina (o jogo deve verificar essa condição)
-
-encontrou_linha_livre_jogador2:
-    li t4, 2              # Coloca a peça do jogador 2 (2 representa o jogador 2)
-    sw t4, 0(t6)      # Atualiza a célula com o valor 2
-
-fim_atualizar_jogador2:
-    jr ra                 # Retorna ao chamador
-    
-verificar_vitoria:
-    # Verifica se há 4 em linha
-    # Implementação simplificada
-    li t0, 0  # Supondo que ninguém venceu
-    jr ra
 
     
 sair:
