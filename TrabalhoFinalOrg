@@ -36,7 +36,7 @@ contador_vitorias: .word 0
 contador_derrotas: .word 0 
 dash_tabuleiro: .asciz " "
 
-
+# Usando .space para alocar o tabuleiro
 tabuleiro: 
     .word 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, 0
@@ -59,17 +59,17 @@ col_header_9x6: .asciz "0 1 2 3 4 5 6 7 8\n"
 .globl main
 main:
 
-
+    # Imprime o menu principal
     li a7, 4                       
     la a0, prompt_menu             
     ecall
 
-
+    # Pega a entrada do usuário
     li a7, 5                       
     ecall                         
     mv t0, a0                     
 
-
+    # Verifica a escolha
     li t1, 1                       
     beq t0, t1, configuracao       
 
@@ -79,14 +79,14 @@ main:
     li t1, 3                      
     beq t0, t1, sair               
 
-
+    # Caso a entrada seja inválida
     li a7, 4                       
     la a0, opcao_invalida          
     ecall                          
     j main                         
 
 configuracao:
-
+    # Imprime o menu de configuração
     li a7, 4                       
     la a0, prompt_config           
     ecall
@@ -181,7 +181,7 @@ tabuleiro_7x6:
 
     # Inicializa o tabuleiro
     jal inicializa_tabuleiro_7x6
-    j iniciar_jogo
+    j configuracao
     
 tabuleiro_9x6_:
     li s1, 2 
@@ -191,7 +191,7 @@ tabuleiro_9x6_:
 
     # Inicializa o tabuleiro
     jal inicializa_tabuleiro_9x6
-    j iniciar_jogo
+    j configuracao
 
 modo_dificuldade:
     li a7, 4
@@ -317,7 +317,7 @@ inicializa_proxima_linha:
 inicializa_fim:
     jr ra
     
-
+# Inicialização do tabuleiro 9x6 (seguindo a mesma lógica do 7x6)
 inicializa_tabuleiro_9x6:
     la t2, tabuleiro_9x6
     li t0, 6            # Número de linhas (6)
@@ -411,24 +411,35 @@ exibir_fim_9x6:
 
 # Funções para Jogar
 jogar:
+    li a7, 4
+    la a0, msg_jogo_iniciado
+    ecall
+
+    # Verifica qual tabuleiro foi selecionado
     li t1, 1
-    beq s1, t1, exibir_tabuleiro    
+    beq s1, t1, jogar_tabuleiro_7x6
+
     li t1, 2
-    beq s1, t1, exibir_tabuleiro_9x6  
-    j loop_jogo
-    li s3, 0 
-    
-iniciar_jogo:
-    # Função principal do jogo
-    jal jogar
-    jr ra
-  
+    beq s1, t1, jogar_tabuleiro_9x6
+
+    # Se houver algum erro, volta ao menu
+    j main
+
+jogar_tabuleiro_7x6:
+    jal exibir_tabuleiro  # Exibe o tabuleiro 7x6
+    li s3, 0              # Começa com o Jogador 1 (0 = Jogador 1, 1 = Jogador 2)
+    j loop_jogo            # Vai para a lógica de jogadas
+
+jogar_tabuleiro_9x6:
+    jal exibir_tabuleiro_9x6  # Exibe o tabuleiro 9x6
+    li s3, 0                  # Começa com o Jogador 1 (0 = Jogador 1, 1 = Jogador 2)
+    j loop_jogo            # Vai para a lógica de jogadas
+
 loop_jogo:
-    # Exibe o tabuleiro com base na escolha do usuário
-    li t1, 1
-    beq s1, t1, exibir_tabuleiro         
-    li t1, 2
-    beq s1, t1, exibir_tabuleiro_9x6     
+    beq s3, x0, jogador1_turno
+    li t3, 1
+    beq s3, t3, jogador2_turno
+    j loop_jogo    
 
     # Verifica de quem é a vez
     beq s3, x0, jogador1_turno
@@ -436,7 +447,7 @@ loop_jogo:
     beq s3, t3, jogador2_turno
     j loop_jogo
 
-# Turno do Jogador 1
+
 jogador1_turno:
     li a7, 4
     la a0, msg_jogador1
@@ -458,7 +469,7 @@ jogador1_turno:
     li t4, 1
     beq t0, t4, jogador1_venceu
 
-    # Passa a vez para o jogador 2
+
     li s3, 1  # Muda para o jogador 2
     j loop_jogo
 
@@ -479,16 +490,16 @@ jogador2_turno:
     # Atualiza o tabuleiro com a jogada do jogador 2
     jal atualizar_tabuleiro_jogador2
 
-    # Verifica se o jogador 2 venceu
+
     jal verificar_vitoria
     li t4, 1
     beq t0, t4, jogador2_venceu
 
-    # Passa a vez para o jogador 1
-    li s3, 0  # Muda para o jogador 1
+
+    li s3, 0  
     j loop_jogo
 
-# Caso a jogada seja inválida, exibe uma mensagem e repete o turno
+
 jogada_invalida:
     li a7, 4
     la a0, msg_jogada_invalida
@@ -511,7 +522,6 @@ verificar_jogada:
     li t1, 1  
     jr ra
 
-# Atualização do tabuleiro para Jogador 1
 atualizar_tabuleiro_jogador1:
     la t2, tabuleiro
     mv t5, t0
@@ -531,7 +541,7 @@ procura_linha_livre_jogador1:
     j fim_atualizar_jogador1
 
 encontrou_linha_livre_jogador1:
-    li t4, 1
+    li t4, 1  # Marca o jogador 1 com "1" no tabuleiro
     sw t4, 0(t6)
 
 fim_atualizar_jogador1:
@@ -557,12 +567,11 @@ procura_linha_livre_jogador2:
     j fim_atualizar_jogador2
 
 encontrou_linha_livre_jogador2:
-    li t4, 2
+    li t4, 2  # Marca o jogador 2 com "2" no tabuleiro
     sw t4, 0(t6)
 
 fim_atualizar_jogador2:
     jr ra
-
 verificar_vitoria:
     li t0, 0
     jr ra
