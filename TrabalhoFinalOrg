@@ -86,17 +86,17 @@ main:
     j main                         
 
 configuracao:
-    # Imprime o menu de configuração
+
     li a7, 4                       
     la a0, prompt_config           
     ecall
 
-    # Pega a entrada do usuário
+
     li a7, 5                       
     ecall
     mv t1, a0
 
-    # Verifica a opção selecionada
+
     li t2, 1                      
     beq t1, t2, qtd_jogadores
 
@@ -115,7 +115,6 @@ configuracao:
     li t2, 6
     beq t1, t2, main
 
-    # Se inválido, reinicia o menu de configuração
     j configuracao                 
 
 qtd_jogadores:
@@ -126,13 +125,11 @@ qtd_jogadores:
     li a7, 5                     
     ecall                         
 
-    # Verifica a entrada de quantidade de jogadores
     li t1, 1                    
     li t2, 2                    
     beq a0, t1, um_jogador       
     beq a0, t2, dois_jogadores    
 
-    # Caso seja inválido
     li a7, 4
     la a0, opcao_invalida        
     ecall
@@ -161,7 +158,7 @@ tamanho_tabuleiro:
     ecall
     mv t1, a0
 
-    # Verifica a escolha de tamanho do tabuleiro
+
     li t2, 1 
     beq t1, t2, tabuleiro_7x6
 
@@ -179,7 +176,6 @@ tabuleiro_7x6:
     la a0, msg_7x6_escolhido
     ecall
 
-    # Inicializa o tabuleiro
     jal inicializa_tabuleiro_7x6
     j configuracao
     
@@ -189,7 +185,6 @@ tabuleiro_9x6_:
     la a0, msg_9x6_escolhido
     ecall
 
-    # Inicializa o tabuleiro
     jal inicializa_tabuleiro_9x6
     j configuracao
 
@@ -296,10 +291,10 @@ mostrar_configuracoes:
 
     j configuracao
 
-# Funções de Inicialização do Tabuleiro
+
 
 inicializa_tabuleiro_7x6:
-    la t2, tabuleiro          # Carrega o endereço base do tabuleiro
+    la t2, tabuleiro          
     li t0, 6                  # Número de linhas (6)
     li t1, 7                  # Número de colunas (7)
 inicializa_loop:
@@ -464,16 +459,17 @@ jogador1_turno:
     # Atualiza o tabuleiro com a jogada do jogador 1
     jal atualizar_tabuleiro_jogador1
 
+    # **Adiciona esta linha para exibir o tabuleiro após a jogada**
+    jal exibir_tabuleiro
+
     # Verifica se o jogador 1 venceu
     jal verificar_vitoria
     li t4, 1
     beq t0, t4, jogador1_venceu
 
-
     li s3, 1  # Muda para o jogador 2
     j loop_jogo
 
-# Turno do Jogador 2
 jogador2_turno:
     li a7, 4
     la a0, msg_jogador2
@@ -490,13 +486,15 @@ jogador2_turno:
     # Atualiza o tabuleiro com a jogada do jogador 2
     jal atualizar_tabuleiro_jogador2
 
+    # **Adiciona esta linha para exibir o tabuleiro após a jogada**
+    jal exibir_tabuleiro
 
+    # Verifica se o jogador 2 venceu
     jal verificar_vitoria
     li t4, 1
     beq t0, t4, jogador2_venceu
 
-
-    li s3, 0  
+    li s3, 0  # Muda para o jogador 1
     j loop_jogo
 
 
