@@ -327,32 +327,61 @@ jogar:
     #jal inicializa_tabuleiro
     #li s3, 0  # Jogador 1 começa
 
+
+    
+    
 loop_jogo:
     # Exibe o tabuleiro
     jal exibir_tabuleiro
-    # Se for 1 jogador, o segundo jogador será o computador
-    
 
     # Verifica de quem é a vez
-    beq s3, x0, jogador1_turno
-    li t1, 2
-    beq s3, t1, jogador2_turno
+    beq s3, x0, jogador1_turno  # Se s3 == 0, é a vez do Jogador 1 (humano)
     
+    # Se for 1 jogador (s0 == 1), o segundo jogador será o computador
     li t1, 1
     beq s0, t1, turno_computador
-    
+
+    # Se for 2 jogadores (s0 == 2), o segundo jogador é outro humano
+jogador2_turno:
+    li a7, 4
+    la a0, msg_jogador2
+    ecall
+
+    li a7, 5
+    ecall
+    mv t0, a0
+
+    # Verifica se a jogada é válida
+    jal verificar_jogada
+    beq t1, x0, jogada_invalida
+
+    # Atualiza o tabuleiro com a jogada do jogador 2
+    jal atualizar_tabuleiro_jogador2
+
+    # Verifica se o jogador 2 venceu
+    jal verificar_vitoria
+    li t4, 1
+    beq t0, t4, jogador2_venceu
+
+    # Passa a vez para o jogador 1
+    li s3, 0  # Define que é a vez do Jogador 1
     j loop_jogo
-    
-    
+
 
 turno_computador:
     li a7, 4
     la a0, msg_jogador2  # Mensagem indicando que o computador está jogando
     ecall
 
+    # Loop para garantir que o computador escolha uma jogada válida
+escolher_coluna:
     # Gera número aleatório entre 0 e 6 (coluna aleatória)
     jal generate_random
     mv t0, a0  # t0 agora contém a coluna escolhida pelo computador
+
+    # Verifica se a jogada é válida
+    jal verificar_jogada
+    beq t1, x0, escolher_coluna   # Se a jogada for inválida, escolhe outra coluna
 
     # Atualiza o tabuleiro com a jogada do computador (jogador 2)
     jal atualizar_tabuleiro_jogador2
@@ -365,7 +394,6 @@ turno_computador:
     # Passa a vez para o jogador 1
     li s3, 0
     j loop_jogo
-
 
     
 jogador1_turno:
@@ -393,30 +421,7 @@ jogador1_turno:
     li s3, 1
     j loop_jogo
 
-jogador2_turno:
-    li a7, 4
-    la a0, msg_jogador2
-    ecall
 
-    li a7, 5
-    ecall
-    mv t0, a0
-
-    # Verifica se a jogada é válida
-    jal verificar_jogada
-    beq t1, x0, jogada_invalida
-
-    # Atualiza o tabuleiro com a jogada do jogador 2
-    jal atualizar_tabuleiro_jogador2
-
-    # Verifica se o jogador 2 venceu
-    jal verificar_vitoria
-    li t4, 1
-    beq t0, t4, jogador2_venceu
-
-    # Passa a vez para o jogador 1
-    li s3, 0
-    j loop_jogo
 
 jogada_invalida:
     li a7, 4
@@ -558,11 +563,7 @@ exibir_proxima_linha:
 exibir_fim:
     jr ra
 
-#verificar_jogada:
-    # Verifica se a jogada é válida (coluna dentro do limite e não cheia)
-    # Implementação simplificada
- #   li t1, 1  # Supondo que a jogada é válida
-  #  jr ra
+
 
 atualizar_tabuleiro_jogador1:
     la t2, tabuleiro      # Carrega o endereço do tabuleiro
@@ -629,16 +630,19 @@ coluna_valida:
     la t2, tabuleiro    # Carrega o tabuleiro
     li t1, 0            # Inicia na linha 0
     li t3, 6            # Número de linhas
+
 verifica_linha:
-    lw t5, 0(t2)        # Carrega o valor da célula (0, 1 ou 2)
-    beq t5, x0, jogada_valida   # Se a célula está vazia, a jogada é válida
-    addi t2, t2, 4      # Avança para a próxima linha
-    addi t1, t1, 1
-    bne t1, t3, verifica_linha  # Continua verificando até a última linha
+    # Calcula o deslocamento no tabuleiro com base na linha e coluna
+    mul t5, t1, t1      # t5 = linha * 7 (multiplica pelo número de colunas)
+    add t5, t5, t4      # Soma o deslocamento da coluna
+    slli t5, t5, 2      # Multiplica por 4 para acessar o endereço da célula correta
+    lw t6, 0(t2)        # Carrega o valor da célula (0, 1 ou 2)
+    beq t6, x0, jogada_valida  # Se a célula estiver vazia, a jogada é válida
+
+    addi t1, t1, -1      # Move para a linha acima
+    bnez t1, verifica_linha  # Continua verificando até a última linha
 
     # Se chegou aqui, a coluna está cheia
-    li t1, 0            # Jogada inválida
-    jr ra
 
 jogada_valida:
     li t1, 1            # Jogada válida
