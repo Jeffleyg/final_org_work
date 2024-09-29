@@ -1,4 +1,4 @@
-# Jeffley Gar√ßon 2311100023 & Loude Djema Sime 2211100051
+# Jeffley GAr√ßon 2311100023 & Loude Djema Sime 2211100051
 .data
 prompt_menu: .asciz "Menu Principal:\n1. Configuracao\n2. Jogar\n3. Sair\nEscolha: "
 prompt_config:  .asciz "\nMenu de Configuracao:\n1. Quantidade de jogadores\n2. Tamanho do tabuleiro\n3. Modo de dificuldade\n4. Zerar contadores\n5. Mostrar configuracoes\n6. Voltar ao Menu Principal\nEscolha: "
@@ -6,10 +6,10 @@ opcao_invalida: .asciz "Opcao invalida, tente novamente.\n"
 qtd_jogadores_msg: .asciz "Quantidade de jogadores (1 ou 2): "
 msg_de_um_jogador: .asciz " 1 Jogador \n--------------------------------\n"
 msg_de_dois_jogador: .asciz " 2 Jogadores \n--------------------------------\n"
-tamanho_tabuleiro_msg: .asciz "Tamanho do tabuleiro\n1. para 7x6 \n2 para 9x6 \n"
+tamanho_tabuleiro_msg: .asciz "Tamanho do tabuleiro\n1. para 7x6 \n, \n2 para 9x6 \n "
 msg_7x6_escolhido: .asciz "Tabuleiro 7x6 escolhido.\n--------------------------------\n"
-msg_9x6_escolhido: .asciz "Tabuleiro 9x6 escolhido.\n--------------------------------\n"
-modo_dificuldade_msg: .asciz "Modo de dificuldade (1 - Facil, 2 - Medio): \n1. Facil\n2. Medio\n--------------------------------\n"
+msg_9x6_escolhido: .asciz "Tabuleiro 9x6 escolhido.\n --------------------------------\n"
+modo_dificuldade_msg: .asciz "Modo de dificuldade (1 - Facil, 2 - Medio): \n.1. Facil\n2. Medio\n--------------------------------\n"
 msg_modo_facil: .asciz "Modo Facil escolhido.\n--------------------------------\n"
 msg_modo_medio: .asciz "Modo Medio escolhido.\n--------------------------------\n"
 contadores_zerados_msg: .asciz "Contadores zerados.\n--------------------------------\n"
@@ -29,14 +29,13 @@ msg_jogada_invalida: .asciz "Jogada invalida, tente novamente.\n"
 msg_vitoria_jogador1: .asciz "Jogador 1 (X) venceu!\n"
 msg_vitoria_jogador2: .asciz "Jogador 2 (O) venceu!\n"
 msg_empate: .asciz "Empate!\n"
-msg_coluna_invalida: .asciz "Coluna invalida, tente novamente.\n"
+msg_coluna_invalida: .asciz "Coluna invÔøΩlida, tente novamente.\n"
 newline: .asciz "\n" 
 contador_total_jogadas: .word 0 
 contador_vitorias: .word 0
 contador_derrotas: .word 0 
-dash_tabuleiro: .asciz " "
-
-# Usando .space para alocar o tabuleiro
+# Inicializa√ß√£o do valor da semente do gerador
+random_seed: .word 123456789   # Valor inicial da semente
 tabuleiro: 
     .word 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, 0
@@ -44,53 +43,42 @@ tabuleiro:
     .word 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, 0
-tabuleiro_9x6: 
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-
+    
 col_header: .asciz "0 1 2 3 4 5 6\n"
 col_header_9x6: .asciz "0 1 2 3 4 5 6 7 8\n"
-
 .text
 .globl main
 main:
 
-    # Imprime o menu principal
     li a7, 4                       
     la a0, prompt_menu             
-    ecall
+    ecall                          
 
-    # Pega a entrada do usu·rio
+
     li a7, 5                       
-    ecall                         
-    mv t0, a0                     
+    ecall                        
+    mv t0, a0                    
 
-    # Verifica a escolha
+
     li t1, 1                       
     beq t0, t1, configuracao       
 
     li t1, 2                       
     beq t0, t1, jogar              
 
-    li t1, 3                      
+    li t1, 3                     
     beq t0, t1, sair               
 
-    # Caso a entrada seja inv·lida
+
     li a7, 4                       
     la a0, opcao_invalida          
     ecall                          
     j main                         
 
 configuracao:
-
     li a7, 4                       
     la a0, prompt_config           
     ecall
-
 
     li a7, 5                       
     ecall
@@ -125,16 +113,18 @@ qtd_jogadores:
     li a7, 5                     
     ecall                         
 
+    li t3, 10                      
+    beq a0, t3, qtd_jogadores      
+
     li t1, 1                    
     li t2, 2                    
-    beq a0, t1, um_jogador       
+    beq a0, t1, um_jogador        
     beq a0, t2, dois_jogadores    
 
     li a7, 4
     la a0, opcao_invalida        
     ecall
     j qtd_jogadores             
-
 um_jogador:
     li s0, 1                       
     li a7, 4                       
@@ -149,6 +139,34 @@ dois_jogadores:
     ecall
     j configuracao
 
+
+
+# Fun√ß√£o para gerar um n√∫mero pseudoaleat√≥rio
+generate_random:
+    # Carregar a semente atual
+    la t0, random_seed
+    lw t1, 0(t0)
+    
+    # Constantes para o LCG
+    li t2, 1664525   # 'a' no LCG
+    li t3, 1013904223  # 'c' no LCG
+    li t4, 2147483647  # 'm' no LCG (2^31)
+
+    # Calcular o pr√≥ximo n√∫mero aleat√≥rio
+    mul t1, t1, t2   # t1 = a * seed
+    add t1, t1, t3   # t1 = a * seed + c
+    rem t1, t1, t4   # t1 = (a * seed + c) % m
+
+    # Atualizar a semente
+    sw t1, 0(t0)
+
+    # Ajustar o n√∫mero para o intervalo 0-6
+    li t2, 7         # Queremos um n√∫mero entre 0 e 6
+    rem a0, t1, t2   # a0 = random_value % 7 (gera n√∫mero entre 0 e 6)
+
+    jr ra            # Retorna com o valor aleat√≥rio em a0
+
+
 tamanho_tabuleiro:
     li a7, 4
     la a0, tamanho_tabuleiro_msg
@@ -158,12 +176,11 @@ tamanho_tabuleiro:
     ecall
     mv t1, a0
 
-
     li t2, 1 
     beq t1, t2, tabuleiro_7x6
 
     li t2, 2 
-    beq t1, t2, tabuleiro_9x6_
+    beq t1, t2, tabuleiro_9x6
 
     li a7, 4
     la a0, opcao_invalida
@@ -175,19 +192,19 @@ tabuleiro_7x6:
     li a7, 4
     la a0, msg_7x6_escolhido
     ecall
-
-    jal inicializa_tabuleiro_7x6
-    j configuracao
     
-tabuleiro_9x6_:
+    jal inicializa_tabuleiro
+    j configuracao
+
+tabuleiro_9x6:
     li s1, 2 
     li a7, 4
     la a0, msg_9x6_escolhido
     ecall
-
-    jal inicializa_tabuleiro_9x6
+    
+    jal inicializa_tabuleiro
     j configuracao
-
+    
 modo_dificuldade:
     li a7, 4
     la a0, modo_dificuldade_msg
@@ -233,12 +250,14 @@ zerar_contadores:
     la t0, contador_derrotas
     sw a0, 0(t0)
 
+
     li a7, 4
     la a0, contadores_zerados_msg  
     ecall
     j configuracao
 
 mostrar_configuracoes:
+
     li a7, 4
     la a0, mostrar_config_msg      
     ecall
@@ -292,103 +311,213 @@ mostrar_configuracoes:
     j configuracao
 
 
-
-inicializa_tabuleiro_7x6:
-    la t2, tabuleiro          
-    li t0, 6                  # N˙mero de linhas (6)
-    li t1, 7                  # N˙mero de colunas (7)
-inicializa_loop:
-    beq t0, x0, inicializa_fim
-    li t3, 7                  # Reinicia o contador de colunas para cada linha
-inicializa_coluna:
-    beq t3, x0, inicializa_proxima_linha
-    sw zero, 0(t2)            # Define o valor da cÈlula como 0
-    addi t2, t2, 4            # AvanÁa 4 bytes (palavra)
-    addi t3, t3, -1           # Decrementa o n˙mero de colunas
-    j inicializa_coluna        # Continua para a prÛxima coluna
-inicializa_proxima_linha:
-    addi t0, t0, -1           # Decrementa o n˙mero de linhas
-    j inicializa_loop          # Continua para a prÛxima linha
-inicializa_fim:
-    jr ra
     
-# InicializaÁ„o do tabuleiro 9x6 (seguindo a mesma lÛgica do 7x6)
-inicializa_tabuleiro_9x6:
-    la t2, tabuleiro_9x6
-    li t0, 6            # N˙mero de linhas (6)
-    li t1, 9            # N˙mero de colunas (9)
-inicializa_loop_9x6:
-    beq t0, x0, inicializa_fim_9x6
-    li t3, 9            # Reinicia o contador de colunas para cada linha
-inicializa_coluna_9x6:
-    beq t3, x0, inicializa_proxima_linha_9x6
-    sw zero, 0(t2)      # Define o valor da cÈlula como 0
-    addi t2, t2, 4      # AvanÁa 4 bytes (alinhamento de memÛria)
-    addi t3, t3, -1     # Decrementa o n˙mero de colunas
-    j inicializa_coluna_9x6
-inicializa_proxima_linha_9x6:
-    addi t0, t0, -1     # Decrementa o n˙mero de linhas
-    j inicializa_loop_9x6
-inicializa_fim_9x6:
-    jr ra
 
-# FunÁıes de ExibiÁ„o do Tabuleiro
+jogar:
+    li a7, 4
+    la a0, msg_jogo_iniciado
+    ecall
+    
+    li t1, 1
+    beq s1, t1, jogar_tabuleiro_7x6
+
+    li t1, 2
+    beq s1, t1, jogar_tabuleiro_9x6
+    
+    #jal inicializa_tabuleiro
+    #li s3, 0  # Jogador 1 come√ßa
+
+loop_jogo:
+    # Exibe o tabuleiro
+    jal exibir_tabuleiro
+    # Se for 1 jogador, o segundo jogador ser√° o computador
+    
+
+    # Verifica de quem √© a vez
+    beq s3, x0, jogador1_turno
+    li t1, 2
+    beq s3, t1, jogador2_turno
+    
+    li t1, 1
+    beq s0, t1, turno_computador
+    
+    j loop_jogo
+    
+    
+
+turno_computador:
+    li a7, 4
+    la a0, msg_jogador2  # Mensagem indicando que o computador est√° jogando
+    ecall
+
+    # Gera n√∫mero aleat√≥rio entre 0 e 6 (coluna aleat√≥ria)
+    jal generate_random
+    mv t0, a0  # t0 agora cont√©m a coluna escolhida pelo computador
+
+    # Atualiza o tabuleiro com a jogada do computador (jogador 2)
+    jal atualizar_tabuleiro_jogador2
+
+    # Verifica se o jogador 2 venceu
+    jal verificar_vitoria
+    li t4, 1
+    beq t0, t4, jogador2_venceu
+
+    # Passa a vez para o jogador 1
+    li s3, 0
+    j loop_jogo
+
+
+    
+jogador1_turno:
+    li a7, 4
+    la a0, msg_jogador1
+    ecall
+
+    li a7, 5
+    ecall
+    mv t0, a0
+
+    # Verifica se a jogada √© v√°lida
+    jal verificar_jogada
+    beq t1, x0, jogada_invalida
+
+    # Atualiza o tabuleiro com a jogada do jogador 1
+    jal atualizar_tabuleiro_jogador1
+
+    # Verifica se o jogador 1 venceu
+    jal verificar_vitoria
+    li t4, 1
+    beq t0, t4, jogador1_venceu
+
+    # Passa a vez para o jogador 2
+    li s3, 1
+    j loop_jogo
+
+jogador2_turno:
+    li a7, 4
+    la a0, msg_jogador2
+    ecall
+
+    li a7, 5
+    ecall
+    mv t0, a0
+
+    # Verifica se a jogada √© v√°lida
+    jal verificar_jogada
+    beq t1, x0, jogada_invalida
+
+    # Atualiza o tabuleiro com a jogada do jogador 2
+    jal atualizar_tabuleiro_jogador2
+
+    # Verifica se o jogador 2 venceu
+    jal verificar_vitoria
+    li t4, 1
+    beq t0, t4, jogador2_venceu
+
+    # Passa a vez para o jogador 1
+    li s3, 0
+    j loop_jogo
+
+jogada_invalida:
+    li a7, 4
+    la a0, msg_jogada_invalida
+    ecall
+    j loop_jogo
+
+jogador1_venceu:
+    li a7, 4
+    la a0, msg_vitoria_jogador1
+    ecall
+    j main
+
+jogador2_venceu:
+    li a7, 4
+    la a0, msg_vitoria_jogador2
+    ecall
+    j main
+
+jogar_tabuleiro_7x6:
+    jal exibir_tabuleiro
+    li s3, 0
+    j loop_jogo
+    
+jogar_tabuleiro_9x6:
+    jal exibir_tabuleiro
+    li s3, 0
+    j loop_jogo
+
+inicializa_tabuleiro:
+    la t2, tabuleiro
+    li t0, 6
+    li t1, 7
+    
+    # Inicializa todas as posi√ß√µes do tabuleiro com 0
+    inicializa_loop:
+        beq t0, x0, inicializa_fim
+        li t3, 7
+        inicializa_coluna:
+            beq t3, x0, inicializa_proxima_linha
+            sw zero, 0(t2)
+            addi t2, t2, 4
+            addi t3, t3, -1
+            j inicializa_coluna
+        inicializa_proxima_linha:
+            addi t0, t0, -1
+            j inicializa_loop
+    inicializa_fim:
+        jr ra
+
+
 
 exibir_tabuleiro:
+    # Exibe o cabe√ßalho das colunas
     li a7, 4
-    la a0, col_header        # Exibe o cabeÁalho com os n˙meros das colunas
-    ecall  
-    la t2, tabuleiro         # Carrega o endereÁo base do tabuleiro
-    li t0, 6                 # N˙mero de linhas (6) do tabuleiro 7x6
+    la a0, col_header
+    ecall
+    
+    # Exibe cada linha do tabuleiro
+    la t2, tabuleiro
+    li t0, 6
 exibir_linha:
-    beq t0, x0, exibir_fim   # Verifica se todas as linhas foram exibidas
-    li t1, 7                 # N˙mero de colunas (7) para o tabuleiro 7x6
+    beq t0, x0, exibir_fim
+    li t1, 7            # N√∫mero de colunas permanece 7 para ambas as configura√ß√µes
+
 exibir_coluna:
-    beq t1, x0, exibir_proxima_linha   # Verifica se todas as colunas foram exibidas
-    lw t3, 0(t2)            # Carrega o valor da cÈlula do tabuleiro
+    beq t1, x0, exibir_proxima_linha  # Se t1 == 0, pr√≥xima linha
+    lw t3, 0(t2)                      # Carrega o valor da c√©lula atual (0, 1 ou 2)
+    
+    # Verifica o valor da c√©lula e exibe o s√≠mbolo correspondente
+    li t4, 0        # Verifica se a c√©lula est√° vazia (0)
+    beq t3, t4, exibir_espaco_vazio
 
-    # Exibe o valor da cÈlula diretamente (0 ou outro valor)
-    li a7, 1                # CÛdigo do ecall para imprimir inteiros
-    mv a0, t3               # Move o valor da cÈlula para ser impresso
-    ecall
+    li t4, 1        # Verifica se √© o jogador 1
+    beq t3, t4, exibir_jogador1
 
-    # EspaÁo apÛs o valor da cÈlula
+    li t4, 2        # Verifica se √© o jogador 2
+    beq t3, t4, exibir_jogador2
+exibir_espaco_vazio:
+    la a0, dash    # Exibe o "-"
     li a7, 4
-    la a0, dash_tabuleiro             # Exibe um espaÁo ou separador
     ecall
-
-    addi t2, t2, 4           # AvanÁa 4 bytes (para a prÛxima cÈlula)
-    addi t1, t1, -1          # Decrementa o n˙mero de colunas
-    j exibir_coluna          # Continua exibindo as prÛximas colunas
-
-exibir_proxima_linha:
-    li a7, 4
-    la a0, newline           # Nova linha apÛs cada linha de cÈlulas
-    ecall
-    addi t0, t0, -1          # Decrementa o n˙mero de linhas
-    j exibir_linha           # Continua para a prÛxima linha
-
-exibir_fim:
-    jr ra                    # Retorna ao chamador
-
+    j proximo_elemento
 exibir_tabuleiro_9x6:
     li a7, 4
-    la a0, col_header_9x6     # Exibe o cabeÁalho para o tabuleiro 9x6
+    la a0, col_header_9x6     # Exibe o cabe√ßalho para o tabuleiro 9x6
     ecall
-    la t2, tabuleiro_9x6      # Carrega o endereÁo base do tabuleiro 9x6
-    li t0, 6                  # N˙mero de linhas (6)
+    la t2, tabuleiro_9x6      # Carrega o endere√ßo base do tabuleiro 9x6
+    li t0, 6                  # N√∫mero de linhas (6)
 exibir_linha_9x6:
     beq t0, x0, exibir_fim_9x6  
-    li t1, 9                    # N˙mero de colunas (9)
+    li t1, 9                    # N√∫mero de colunas (9)
 exibir_coluna_9x6:
     beq t1, x0, exibir_proxima_linha_9x6
-    lw a0, 0(t2)              # Carrega o valor da cÈlula do tabuleiro
+    lw a0, 0(t2)              # Carrega o valor da c√©lula do tabuleiro
     li a7, 1                  # Exibe o valor (0 ou outros)
     ecall
 
-    # EspaÁo apÛs o valor da cÈlula
+    # Espa√ßo ap√≥s o valor da c√©lula
     li a7, 4
-    la a0, dash_tabuleiro             # Exibe um espaÁo ou separador
+    la a0, dash             # Exibe um espa√ßo ou separador
     ecall
 
     addi t2, t2, 4
@@ -403,178 +532,130 @@ exibir_proxima_linha_9x6:
     j exibir_linha_9x6
 exibir_fim_9x6:
     jr ra
-
-# FunÁıes para Jogar
-jogar:
+exibir_jogador1:
+    la a0, jogador1_peca  # Exibe o "#"
     li a7, 4
-    la a0, msg_jogo_iniciado
     ecall
+    j proximo_elemento
 
-    # Verifica qual tabuleiro foi selecionado
-    li t1, 1
-    beq s1, t1, jogar_tabuleiro_7x6
-
-    li t1, 2
-    beq s1, t1, jogar_tabuleiro_9x6
-
-    # Se houver algum erro, volta ao menu
-    j main
-
-jogar_tabuleiro_7x6:
-    jal exibir_tabuleiro  # Exibe o tabuleiro 7x6
-    li s3, 0              # ComeÁa com o Jogador 1 (0 = Jogador 1, 1 = Jogador 2)
-    j loop_jogo            # Vai para a lÛgica de jogadas
-
-jogar_tabuleiro_9x6:
-    jal exibir_tabuleiro_9x6  # Exibe o tabuleiro 9x6
-    li s3, 0                  # ComeÁa com o Jogador 1 (0 = Jogador 1, 1 = Jogador 2)
-    j loop_jogo            # Vai para a lÛgica de jogadas
-
-loop_jogo:
-    beq s3, x0, jogador1_turno
-    li t3, 1
-    beq s3, t3, jogador2_turno
-    j loop_jogo    
-
-    # Verifica de quem È a vez
-    beq s3, x0, jogador1_turno
-    li t3, 1
-    beq s3, t3, jogador2_turno
-    j loop_jogo
-
-
-jogador1_turno:
+exibir_jogador2:
+    la a0, jogador2_peca  # Exibe o "&"
     li a7, 4
-    la a0, msg_jogador1
     ecall
 
-    li a7, 5  # Pega a entrada do jogador 1
-    ecall
-    mv t0, a0  # Armazena a jogada do jogador 1
+proximo_elemento:
+    addi t2, t2, 4        # Move para a pr√≥xima c√©lula
+    addi t1, t1, -1
+    j exibir_coluna
 
-    # Verifica se a jogada È v·lida
-    jal verificar_jogada
-    beq t1, x0, jogada_invalida
-
-    # Atualiza o tabuleiro com a jogada do jogador 1
-    jal atualizar_tabuleiro_jogador1
-
-    # **Adiciona esta linha para exibir o tabuleiro apÛs a jogada**
-    jal exibir_tabuleiro
-
-    # Verifica se o jogador 1 venceu
-    jal verificar_vitoria
-    li t4, 1
-    beq t0, t4, jogador1_venceu
-
-    li s3, 1  # Muda para o jogador 2
-    j loop_jogo
-
-jogador2_turno:
+exibir_proxima_linha:
     li a7, 4
-    la a0, msg_jogador2
+    la a0, newline        # Exibe uma nova linha
     ecall
+    addi t0, t0, -1
+    j exibir_linha
 
-    li a7, 5  # Pega a entrada do jogador 2
-    ecall
-    mv t0, a0  # Armazena a jogada do jogador 2
-
-    # Verifica se a jogada È v·lida
-    jal verificar_jogada
-    beq t1, x0, jogada_invalida
-
-    # Atualiza o tabuleiro com a jogada do jogador 2
-    jal atualizar_tabuleiro_jogador2
-
-    # **Adiciona esta linha para exibir o tabuleiro apÛs a jogada**
-    jal exibir_tabuleiro
-
-    # Verifica se o jogador 2 venceu
-    jal verificar_vitoria
-    li t4, 1
-    beq t0, t4, jogador2_venceu
-
-    li s3, 0  # Muda para o jogador 1
-    j loop_jogo
-
-
-jogada_invalida:
-    li a7, 4
-    la a0, msg_jogada_invalida
-    ecall
-    j loop_jogo
-jogador1_venceu:
-    li a7, 4
-    la a0, msg_vitoria_jogador1
-    ecall
-    j main
-
-jogador2_venceu:
-    li a7, 4
-    la a0, msg_vitoria_jogador2
-    ecall
-    j main
-
-# VerificaÁ„o da jogada
-verificar_jogada:
-    li t1, 1  
+exibir_fim:
     jr ra
 
+#verificar_jogada:
+    # Verifica se a jogada √© v√°lida (coluna dentro do limite e n√£o cheia)
+    # Implementa√ß√£o simplificada
+ #   li t1, 1  # Supondo que a jogada √© v√°lida
+  #  jr ra
+
 atualizar_tabuleiro_jogador1:
-    la t2, tabuleiro
-    mv t5, t0
-    li t1, 6
+    la t2, tabuleiro      # Carrega o endere√ßo do tabuleiro
+    mv t5, t0             # t0 cont√©m a coluna escolhida pelo jogador 1
+
+    li t1, 6              # Come√ßa na linha mais baixa (linha 6)
 
 procura_linha_livre_jogador1:
     li t4, 7
-    mul t3, t1, t4
-    add t3, t3, t5
-    slli t3, t3, 2
+    mul t3, t1, t4        # Calcula o deslocamento para a linha atual (multiplica por 7)
+    add t3, t3, t5        # Soma o deslocamento da coluna (escolhida pelo jogador)
+    slli t3, t3, 2        # Multiplica por 4 para acessar o endere√ßo da c√©lula correta (4 bytes por c√©lula)
     add t6, t2, t3
-    lw t4, 0(t6)
+    lw t4, 0(t6)      # Carrega o valor da c√©lula (0, 1 ou 2)
 
-    beq t4, x0, encontrou_linha_livre_jogador1
-    addi t1, t1, -1
-    bnez t1, procura_linha_livre_jogador1
-    j fim_atualizar_jogador1
+    beq t4, x0, encontrou_linha_livre_jogador1   # Se a c√©lula est√° vazia (0), pode colocar a pe√ßa
+    addi t1, t1, -1       # Move para a linha acima
+    bnez t1, procura_linha_livre_jogador1   # Continua subindo at√© achar uma c√©lula vazia
+    j fim_atualizar_jogador1  # Se n√£o encontrar uma c√©lula livre, termina (o jogo deve verificar essa condi√ß√£o)
 
 encontrou_linha_livre_jogador1:
-    li t4, 1  # Marca o jogador 1 com "1" no tabuleiro
-    sw t4, 0(t6)
+    li t4, 1              # Coloca a pe√ßa do jogador 1 (1 representa o jogador 1)
+    sw t4, 0(t6)      # Atualiza a c√©lula com o valor 1
 
 fim_atualizar_jogador1:
-    jr ra
+    jr ra                 # Retorna ao chamador
 
-# AtualizaÁ„o do tabuleiro para Jogador 2
 atualizar_tabuleiro_jogador2:
-    la t2, tabuleiro
-    mv t5, t0
-    li t1, 6
+    la t2, tabuleiro      # Carrega o endere√ßo do tabuleiro
+    mv t5, t0             # t0 cont√©m a coluna escolhida pelo jogador 2
+
+    li t1, 6              # Come√ßa na linha mais baixa (linha 6)
 
 procura_linha_livre_jogador2:
     li t4, 7
-    mul t3, t1, t4
-    add t3, t3, t5
-    slli t3, t3, 2
+    mul t3, t1, t4         # Calcula o deslocamento para a linha atual (multiplica por 7)
+    add t3, t3, t5        # Soma o deslocamento da coluna (escolhida pelo jogador)
+    slli t3, t3, 2        # Multiplica por 4 para acessar o endere√ßo da c√©lula correta (4 bytes por c√©lula)
     add t6, t2, t3
-    lw t4, 0(t6)
+    lw t4, 0(t6)      # Carrega o valor da c√©lula (0, 1 ou 2)
 
-    beq t4, x0, encontrou_linha_livre_jogador2
-    addi t1, t1, -1
-    bnez t1, procura_linha_livre_jogador2
-    j fim_atualizar_jogador2
+    beq t4, x0, encontrou_linha_livre_jogador2   # Se a c√©lula est√° vazia (0), pode colocar a pe√ßa
+    addi t1, t1, -1       # Move para a linha acima
+    bnez t1, procura_linha_livre_jogador2   # Continua subindo at√© achar uma c√©lula vazia
+    j fim_atualizar_jogador2  # Se n√£o encontrar uma c√©lula livre, termina (o jogo deve verificar essa condi√ß√£o)
 
 encontrou_linha_livre_jogador2:
-    li t4, 2  # Marca o jogador 2 com "2" no tabuleiro
-    sw t4, 0(t6)
+    li t4, 2              # Coloca a pe√ßa do jogador 2 (2 representa o jogador 2)
+    sw t4, 0(t6)      # Atualiza a c√©lula com o valor 2
 
 fim_atualizar_jogador2:
-    jr ra
-verificar_vitoria:
-    li t0, 0
+    jr ra                 # Retorna ao chamador
+
+verificar_jogada:
+    # Verifica se a jogada √© v√°lida (coluna dentro do limite e n√£o cheia)
+    mv t4, t0           # t0 cont√©m a coluna escolhida
+    li t1, 7            # N√∫mero de colunas
+    blt t4, t1, coluna_valida  # Verifica se a coluna est√° dentro do limite
+    li t1, 0            # Retorna inv√°lido se a jogada n√£o estiver no limite
     jr ra
 
-# Sair do programa
+coluna_valida:
+    # Verifica se a coluna ainda tem espa√ßo para jogar
+    la t2, tabuleiro    # Carrega o tabuleiro
+    li t1, 0            # Inicia na linha 0
+    li t3, 6            # N√∫mero de linhas
+verifica_linha:
+    lw t5, 0(t2)        # Carrega o valor da c√©lula (0, 1 ou 2)
+    beq t5, x0, jogada_valida   # Se a c√©lula est√° vazia, a jogada √© v√°lida
+    addi t2, t2, 4      # Avan√ßa para a pr√≥xima linha
+    addi t1, t1, 1
+    bne t1, t3, verifica_linha  # Continua verificando at√© a √∫ltima linha
+
+    # Se chegou aqui, a coluna est√° cheia
+    li t1, 0            # Jogada inv√°lida
+    jr ra
+
+jogada_valida:
+    li t1, 1            # Jogada v√°lida
+    jr ra
+    
+verificar_vitoria:
+    # Verifica se h√° 4 em linha
+    # Implementa√ß√£o simplificada
+    li t0, 0  # Supondo que ningu√©m venceu
+    jr ra
+
+    
 sair:
-    li a7, 10
+    li a7, 10                    
     ecall
+
+.data
+dash: .asciz "- "
+jogador1_peca: .asciz "#"
+jogador2_peca: .asciz "& "
