@@ -1,4 +1,4 @@
-# Jeffley GarÃ§on 2311100023 & Loude Djema Sime 2211100051
+# Jeffley GArçon 2311100023 & Loude Djema Sime 2211100051
 .data
 prompt_menu: .asciz "Menu Principal:\n1. Configuracao\n2. Jogar\n3. Sair\nEscolha: "
 prompt_config:  .asciz "\nMenu de Configuracao:\n1. Quantidade de jogadores\n2. Tamanho do tabuleiro\n3. Modo de dificuldade\n4. Zerar contadores\n5. Mostrar configuracoes\n6. Voltar ao Menu Principal\nEscolha: "
@@ -6,10 +6,10 @@ opcao_invalida: .asciz "Opcao invalida, tente novamente.\n"
 qtd_jogadores_msg: .asciz "Quantidade de jogadores (1 ou 2): "
 msg_de_um_jogador: .asciz " 1 Jogador \n--------------------------------\n"
 msg_de_dois_jogador: .asciz " 2 Jogadores \n--------------------------------\n"
-tamanho_tabuleiro_msg: .asciz "Tamanho do tabuleiro\n1. para 7x6 \n2 para 9x6 \n"
+tamanho_tabuleiro_msg: .asciz "Tamanho do tabuleiro\n1. para 7x6 \n, \n2 para 9x6 \n "
 msg_7x6_escolhido: .asciz "Tabuleiro 7x6 escolhido.\n--------------------------------\n"
-msg_9x6_escolhido: .asciz "Tabuleiro 9x6 escolhido.\n--------------------------------\n"
-modo_dificuldade_msg: .asciz "Modo de dificuldade (1 - Facil, 2 - Medio): \n1. Facil\n2. Medio\n--------------------------------\n"
+msg_9x6_escolhido: .asciz "Tabuleiro 9x6 escolhido.\n --------------------------------\n"
+modo_dificuldade_msg: .asciz "Modo de dificuldade (1 - Facil, 2 - Medio): \n.1. Facil\n2. Medio\n--------------------------------\n"
 msg_modo_facil: .asciz "Modo Facil escolhido.\n--------------------------------\n"
 msg_modo_medio: .asciz "Modo Medio escolhido.\n--------------------------------\n"
 contadores_zerados_msg: .asciz "Contadores zerados.\n--------------------------------\n"
@@ -29,14 +29,13 @@ msg_jogada_invalida: .asciz "Jogada invalida, tente novamente.\n"
 msg_vitoria_jogador1: .asciz "Jogador 1 (X) venceu!\n"
 msg_vitoria_jogador2: .asciz "Jogador 2 (O) venceu!\n"
 msg_empate: .asciz "Empate!\n"
-msg_coluna_invalida: .asciz "Coluna invalida, tente novamente.\n"
+msg_coluna_invalida: .asciz "Coluna inv lida, tente novamente.\n"
 newline: .asciz "\n" 
 contador_total_jogadas: .word 0 
 contador_vitorias: .word 0
 contador_derrotas: .word 0 
-dash_tabuleiro: .asciz " "
-
-# Usando .space para alocar o tabuleiro
+# Inicialização do valor da semente do gerador
+random_seed: .word 123456789   # Valor inicial da semente
 tabuleiro: 
     .word 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, 0
@@ -44,53 +43,42 @@ tabuleiro:
     .word 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, 0
     .word 0, 0, 0, 0, 0, 0, 0
-tabuleiro_9x6: 
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-    .word 0, 0, 0, 0, 0, 0, 0, 0, 0
-
+    
 col_header: .asciz "0 1 2 3 4 5 6\n"
 col_header_9x6: .asciz "0 1 2 3 4 5 6 7 8\n"
-
 .text
 .globl main
 main:
 
-    # Imprime o menu principal
     li a7, 4                       
     la a0, prompt_menu             
-    ecall
+    ecall                          
 
-    # Pega a entrada do usuário
+
     li a7, 5                       
-    ecall                         
-    mv t0, a0                     
+    ecall                        
+    mv t0, a0                    
 
-    # Verifica a escolha
+
     li t1, 1                       
     beq t0, t1, configuracao       
 
     li t1, 2                       
     beq t0, t1, jogar              
 
-    li t1, 3                      
+    li t1, 3                     
     beq t0, t1, sair               
 
-    # Caso a entrada seja inválida
+
     li a7, 4                       
     la a0, opcao_invalida          
     ecall                          
     j main                         
 
 configuracao:
-
     li a7, 4                       
     la a0, prompt_config           
     ecall
-
 
     li a7, 5                       
     ecall
@@ -125,16 +113,18 @@ qtd_jogadores:
     li a7, 5                     
     ecall                         
 
+    li t3, 10                      
+    beq a0, t3, qtd_jogadores      
+
     li t1, 1                    
     li t2, 2                    
-    beq a0, t1, um_jogador       
+    beq a0, t1, um_jogador        
     beq a0, t2, dois_jogadores    
 
     li a7, 4
     la a0, opcao_invalida        
     ecall
     j qtd_jogadores             
-
 um_jogador:
     li s0, 1                       
     li a7, 4                       
@@ -149,6 +139,34 @@ dois_jogadores:
     ecall
     j configuracao
 
+
+
+# Função para gerar um número pseudoaleatório
+generate_random:
+    # Carregar a semente atual
+    la t0, random_seed
+    lw t1, 0(t0)
+    
+    # Constantes para o LCG
+    li t2, 1664525   # 'a' no LCG
+    li t3, 1013904223  # 'c' no LCG
+    li t4, 2147483647  # 'm' no LCG (2^31)
+
+    # Calcular o próximo número aleatório
+    mul t1, t1, t2   # t1 = a * seed
+    add t1, t1, t3   # t1 = a * seed + c
+    rem t1, t1, t4   # t1 = (a * seed + c) % m
+
+    # Atualizar a semente
+    sw t1, 0(t0)
+
+    # Ajustar o número para o intervalo 0-6
+    li t2, 7         # Queremos um número entre 0 e 6
+    rem a0, t1, t2   # a0 = random_value % 7 (gera número entre 0 e 6)
+
+    jr ra            # Retorna com o valor aleatório em a0
+
+
 tamanho_tabuleiro:
     li a7, 4
     la a0, tamanho_tabuleiro_msg
@@ -158,12 +176,11 @@ tamanho_tabuleiro:
     ecall
     mv t1, a0
 
-
     li t2, 1 
     beq t1, t2, tabuleiro_7x6
 
     li t2, 2 
-    beq t1, t2, tabuleiro_9x6_
+    beq t1, t2, tabuleiro_9x6
 
     li a7, 4
     la a0, opcao_invalida
@@ -175,19 +192,19 @@ tabuleiro_7x6:
     li a7, 4
     la a0, msg_7x6_escolhido
     ecall
-
-    jal inicializa_tabuleiro_7x6
-    j configuracao
     
-tabuleiro_9x6_:
+    jal inicializa_tabuleiro
+    j configuracao
+
+tabuleiro_9x6:
     li s1, 2 
     li a7, 4
     la a0, msg_9x6_escolhido
     ecall
-
-    jal inicializa_tabuleiro_9x6
+    
+    jal inicializa_tabuleiro
     j configuracao
-
+    
 modo_dificuldade:
     li a7, 4
     la a0, modo_dificuldade_msg
@@ -233,12 +250,14 @@ zerar_contadores:
     la t0, contador_derrotas
     sw a0, 0(t0)
 
+
     li a7, 4
     la a0, contadores_zerados_msg  
     ecall
     j configuracao
 
 mostrar_configuracoes:
+
     li a7, 4
     la a0, mostrar_config_msg      
     ecall
@@ -284,6 +303,7 @@ mostrar_configuracoes:
     li a7, 4
     la a0, config_derrotas_msg
     ecall
+    
     li a7, 1
     la t0, contador_derrotas
     lw a0, 0(t0) 
@@ -292,85 +312,220 @@ mostrar_configuracoes:
     j configuracao
 
 
-
-inicializa_tabuleiro_7x6:
-    la t2, tabuleiro          
-    li t0, 6                  # Número de linhas (6)
-    li t1, 7                  # Número de colunas (7)
-inicializa_loop:
-    beq t0, x0, inicializa_fim
-    li t3, 7                  # Reinicia o contador de colunas para cada linha
-inicializa_coluna:
-    beq t3, x0, inicializa_proxima_linha
-    sw zero, 0(t2)            # Define o valor da célula como 0
-    addi t2, t2, 4            # Avança 4 bytes (palavra)
-    addi t3, t3, -1           # Decrementa o número de colunas
-    j inicializa_coluna        # Continua para a próxima coluna
-inicializa_proxima_linha:
-    addi t0, t0, -1           # Decrementa o número de linhas
-    j inicializa_loop          # Continua para a próxima linha
-inicializa_fim:
-    jr ra
     
-# Inicialização do tabuleiro 9x6 (seguindo a mesma lógica do 7x6)
-inicializa_tabuleiro_9x6:
-    la t2, tabuleiro_9x6
-    li t0, 6            # Número de linhas (6)
-    li t1, 9            # Número de colunas (9)
-inicializa_loop_9x6:
-    beq t0, x0, inicializa_fim_9x6
-    li t3, 9            # Reinicia o contador de colunas para cada linha
-inicializa_coluna_9x6:
-    beq t3, x0, inicializa_proxima_linha_9x6
-    sw zero, 0(t2)      # Define o valor da célula como 0
-    addi t2, t2, 4      # Avança 4 bytes (alinhamento de memória)
-    addi t3, t3, -1     # Decrementa o número de colunas
-    j inicializa_coluna_9x6
-inicializa_proxima_linha_9x6:
-    addi t0, t0, -1     # Decrementa o número de linhas
-    j inicializa_loop_9x6
-inicializa_fim_9x6:
-    jr ra
 
-# Funções de Exibição do Tabuleiro
+jogar:
+    li a7, 4
+    la a0, msg_jogo_iniciado
+    ecall
+    
+    #li t1, 2
+    #beq s1, t1, jogar_tabuleiro_7x6
+
+    #li t1, 2
+    #beq s1, t1, jogar_tabuleiro_9x6
+    
+    #jal inicializa_tabuleiro
+    #li s3, 0  # Jogador 1 começa
+
+
+    
+    
+loop_jogo:
+    # Exibe o tabuleiro
+    jal exibir_tabuleiro
+
+   
+    # Se for 1 jogador (s0 == 1), o segundo jogador será o computador
+    li t1, 1
+    beq s0, t1, turno_computador
+    
+    jal verificar_tabuleiro_cheio
+    li t1, 1
+    beq a0, t1, jogo_empate
+
+    # Verifica de quem é a vez
+    beq s3, x0, jogador1_turno  # Se s3 == 0, é a vez do Jogador 1
+    j jogador2_turno
+
+    
+    jogo_empate:
+    li a7, 4
+    la a0, msg_empate           # Mensagem de empate
+    ecall
+    j main                      # Reinicia ou vai para o menu principal
+
+    # Se for 2 jogadores (s0 == 2), o segundo jogador é outro humano
+jogador2_turno:
+    li a7, 4
+    la a0, msg_jogador2
+    ecall
+
+    li a7, 5
+    ecall
+    mv t0, a0
+
+    # Verifica se a jogada é válida
+    jal verificar_jogada
+    beq t1, x0, jogada_invalida
+
+    # Atualiza o tabuleiro com a jogada do jogador 2
+    jal atualizar_tabuleiro_jogador2
+
+    # Verifica se o jogador 2 venceu
+    jal verificar_vitoria
+    li t4, 1
+    beq t0, t4, jogador2_venceu
+
+    # Passa a vez para o jogador 1
+    li s3, 0
+    j loop_jogo
+
+
+turno_computador:
+    li a7, 4
+    la a0, msg_jogador2 
+    ecall
+
+    # Loop para garantir que o computador escolha uma jogada válida
+escolher_coluna:
+
+    jal generate_random
+    mv t0, a0  
+
+    jal verificar_jogada
+    beq t1, x0, escolher_coluna 
+
+    jal atualizar_tabuleiro_jogador2
+
+    jal verificar_vitoria
+    li t4, 1
+    beq t0, t4, jogador2_venceu
+
+    li s3, 0
+    j loop_jogo
+
+    
+jogador1_turno:
+    li a7, 4
+    la a0, msg_jogador1
+    ecall
+
+    li a7, 5
+    ecall
+    mv t0, a0
+
+    jal verificar_jogada
+    beq t1, x0, jogada_invalida
+
+    jal atualizar_tabuleiro_jogador1
+
+    jal verificar_vitoria
+    li t4, 1
+    beq t0, t4, jogador1_venceu
+    
+      # Verifica a vitória vertical
+    jal verificar_vitoria_vertical
+    li t4, 1
+    beq t0, t4, jogador1_venceu
+    
+    # Verifica a vitória diagonal ascendente
+    jal verificar_vitoria_diagonal_ascendente
+    li t4, 1
+    beq a0, t4, jogador1_venceu
+
+    # Verifica a vitória diagonal descendente
+    jal verificar_vitoria_diagonal_descendente
+    li t4, 1
+    beq a0, t4, jogador1_venceu
+
+    li s3, 1
+    j loop_jogo
+
+
+
+jogada_invalida:
+    li a7, 4
+    la a0, msg_jogada_invalida
+    ecall
+    j loop_jogo
+
+jogador1_venceu:
+    li a7, 4
+    la a0, msg_vitoria_jogador1
+    ecall
+    j main
+
+jogador2_venceu:
+    li a7, 4
+    la a0, msg_vitoria_jogador2
+    ecall
+    j main
+
+jogar_tabuleiro_7x6:
+    jal exibir_tabuleiro
+    li s3, 0
+    j loop_jogo
+    
+jogar_tabuleiro_9x6:
+    jal exibir_tabuleiro
+    li s3, 0
+    j loop_jogo
+
+inicializa_tabuleiro:
+    la t2, tabuleiro
+    li t0, 6
+    li t1, 7
+    
+    # Inicializa todas as posições do tabuleiro com 0
+    inicializa_loop:
+        beq t0, x0, inicializa_fim
+        li t3, 7
+        inicializa_coluna:
+            beq t3, x0, inicializa_proxima_linha
+            sw zero, 0(t2)
+            addi t2, t2, 4
+            addi t3, t3, -1
+            j inicializa_coluna
+        inicializa_proxima_linha:
+            addi t0, t0, -1
+            j inicializa_loop
+    inicializa_fim:
+        jr ra
+
+
 
 exibir_tabuleiro:
+    # Exibe o cabeçalho das colunas
     li a7, 4
-    la a0, col_header        # Exibe o cabeçalho com os números das colunas
-    ecall  
-    la t2, tabuleiro         # Carrega o endereço base do tabuleiro
-    li t0, 6                 # Número de linhas (6) do tabuleiro 7x6
+    la a0, col_header
+    ecall
+    
+    # Exibe cada linha do tabuleiro
+    la t2, tabuleiro
+    li t0, 6
 exibir_linha:
-    beq t0, x0, exibir_fim   # Verifica se todas as linhas foram exibidas
-    li t1, 7                 # Número de colunas (7) para o tabuleiro 7x6
+    beq t0, x0, exibir_fim
+    li t1, 7            # Número de colunas permanece 7 para ambas as configurações
+
 exibir_coluna:
-    beq t1, x0, exibir_proxima_linha   # Verifica se todas as colunas foram exibidas
-    lw t3, 0(t2)            # Carrega o valor da célula do tabuleiro
+    beq t1, x0, exibir_proxima_linha  # Se t1 == 0, próxima linha
+    lw t3, 0(t2)                      # Carrega o valor da célula atual (0, 1 ou 2)
+    
+    # Verifica o valor da célula e exibe o símbolo correspondente
+    li t4, 0        # Verifica se a célula está vazia (0)
+    beq t3, t4, exibir_espaco_vazio
 
-    # Exibe o valor da célula diretamente (0 ou outro valor)
-    li a7, 1                # Código do ecall para imprimir inteiros
-    mv a0, t3               # Move o valor da célula para ser impresso
-    ecall
+    li t4, 1        # Verifica se é o jogador 1
+    beq t3, t4, exibir_jogador1
 
-    # Espaço após o valor da célula
+    li t4, 2        # Verifica se é o jogador 2
+    beq t3, t4, exibir_jogador2
+exibir_espaco_vazio:
+    la a0, dash    # Exibe o "-"
     li a7, 4
-    la a0, dash_tabuleiro             # Exibe um espaço ou separador
     ecall
-
-    addi t2, t2, 4           # Avança 4 bytes (para a próxima célula)
-    addi t1, t1, -1          # Decrementa o número de colunas
-    j exibir_coluna          # Continua exibindo as próximas colunas
-
-exibir_proxima_linha:
-    li a7, 4
-    la a0, newline           # Nova linha após cada linha de células
-    ecall
-    addi t0, t0, -1          # Decrementa o número de linhas
-    j exibir_linha           # Continua para a próxima linha
-
-exibir_fim:
-    jr ra                    # Retorna ao chamador
-
+    j proximo_elemento
 exibir_tabuleiro_9x6:
     li a7, 4
     la a0, col_header_9x6     # Exibe o cabeçalho para o tabuleiro 9x6
@@ -388,7 +543,7 @@ exibir_coluna_9x6:
 
     # Espaço após o valor da célula
     li a7, 4
-    la a0, dash_tabuleiro             # Exibe um espaço ou separador
+    la a0, dash             # Exibe um espaço ou separador
     ecall
 
     addi t2, t2, 4
@@ -403,178 +558,365 @@ exibir_proxima_linha_9x6:
     j exibir_linha_9x6
 exibir_fim_9x6:
     jr ra
-
-# Funções para Jogar
-jogar:
+exibir_jogador1:
+    la a0, jogador1_peca  # Exibe o "#"
     li a7, 4
-    la a0, msg_jogo_iniciado
     ecall
+    j proximo_elemento
 
-    # Verifica qual tabuleiro foi selecionado
-    li t1, 1
-    beq s1, t1, jogar_tabuleiro_7x6
-
-    li t1, 2
-    beq s1, t1, jogar_tabuleiro_9x6
-
-    # Se houver algum erro, volta ao menu
-    j main
-
-jogar_tabuleiro_7x6:
-    jal exibir_tabuleiro  # Exibe o tabuleiro 7x6
-    li s3, 0              # Começa com o Jogador 1 (0 = Jogador 1, 1 = Jogador 2)
-    j loop_jogo            # Vai para a lógica de jogadas
-
-jogar_tabuleiro_9x6:
-    jal exibir_tabuleiro_9x6  # Exibe o tabuleiro 9x6
-    li s3, 0                  # Começa com o Jogador 1 (0 = Jogador 1, 1 = Jogador 2)
-    j loop_jogo            # Vai para a lógica de jogadas
-
-loop_jogo:
-    beq s3, x0, jogador1_turno
-    li t3, 1
-    beq s3, t3, jogador2_turno
-    j loop_jogo    
-
-    # Verifica de quem é a vez
-    beq s3, x0, jogador1_turno
-    li t3, 1
-    beq s3, t3, jogador2_turno
-    j loop_jogo
-
-
-jogador1_turno:
+exibir_jogador2:
+    la a0, jogador2_peca  # Exibe o "&"
     li a7, 4
-    la a0, msg_jogador1
     ecall
 
-    li a7, 5  # Pega a entrada do jogador 1
-    ecall
-    mv t0, a0  # Armazena a jogada do jogador 1
+proximo_elemento:
+    addi t2, t2, 4        # Move para a próxima célula
+    addi t1, t1, -1
+    j exibir_coluna
 
-    # Verifica se a jogada é válida
-    jal verificar_jogada
-    beq t1, x0, jogada_invalida
-
-    # Atualiza o tabuleiro com a jogada do jogador 1
-    jal atualizar_tabuleiro_jogador1
-
-    # **Adiciona esta linha para exibir o tabuleiro após a jogada**
-    jal exibir_tabuleiro
-
-    # Verifica se o jogador 1 venceu
-    jal verificar_vitoria
-    li t4, 1
-    beq t0, t4, jogador1_venceu
-
-    li s3, 1  # Muda para o jogador 2
-    j loop_jogo
-
-jogador2_turno:
+exibir_proxima_linha:
     li a7, 4
-    la a0, msg_jogador2
+    la a0, newline        # Exibe uma nova linha
     ecall
+    addi t0, t0, -1
+    j exibir_linha
 
-    li a7, 5  # Pega a entrada do jogador 2
-    ecall
-    mv t0, a0  # Armazena a jogada do jogador 2
-
-    # Verifica se a jogada é válida
-    jal verificar_jogada
-    beq t1, x0, jogada_invalida
-
-    # Atualiza o tabuleiro com a jogada do jogador 2
-    jal atualizar_tabuleiro_jogador2
-
-    # **Adiciona esta linha para exibir o tabuleiro após a jogada**
-    jal exibir_tabuleiro
-
-    # Verifica se o jogador 2 venceu
-    jal verificar_vitoria
-    li t4, 1
-    beq t0, t4, jogador2_venceu
-
-    li s3, 0  # Muda para o jogador 1
-    j loop_jogo
-
-
-jogada_invalida:
-    li a7, 4
-    la a0, msg_jogada_invalida
-    ecall
-    j loop_jogo
-jogador1_venceu:
-    li a7, 4
-    la a0, msg_vitoria_jogador1
-    ecall
-    j main
-
-jogador2_venceu:
-    li a7, 4
-    la a0, msg_vitoria_jogador2
-    ecall
-    j main
-
-# Verificação da jogada
-verificar_jogada:
-    li t1, 1  
+exibir_fim:
     jr ra
 
+
+encontrou_sequencia:
+    li t0, 1                      # Encontrou 4 em linha
+    jr ra
+    
 atualizar_tabuleiro_jogador1:
-    la t2, tabuleiro
-    mv t5, t0
-    li t1, 6
+    la t2, tabuleiro      # Carrega o endereço do tabuleiro
+    mv t5, t0             # t0 contém a coluna escolhida pelo jogador 1
+
+    li t1, 6              # Começa na linha mais baixa (linha 6)
 
 procura_linha_livre_jogador1:
     li t4, 7
-    mul t3, t1, t4
-    add t3, t3, t5
-    slli t3, t3, 2
+    mul t3, t1, t4        # Calcula o deslocamento para a linha atual (multiplica por 7)
+    add t3, t3, t5        # Soma o deslocamento da coluna (escolhida pelo jogador)
+    slli t3, t3, 2        # Multiplica por 4 para acessar o endereço da célula correta (4 bytes por célula)
     add t6, t2, t3
-    lw t4, 0(t6)
+    lw t4, 0(t6)      # Carrega o valor da célula (0, 1 ou 2)
 
-    beq t4, x0, encontrou_linha_livre_jogador1
-    addi t1, t1, -1
-    bnez t1, procura_linha_livre_jogador1
-    j fim_atualizar_jogador1
+    beq t4, x0, encontrou_linha_livre_jogador1   # Se a célula está vazia (0), pode colocar a peça
+    addi t1, t1, -1       # Move para a linha acima
+    bnez t1, procura_linha_livre_jogador1   # Continua subindo até achar uma célula vazia
+    j fim_atualizar_jogador1  # Se não encontrar uma célula livre, termina (o jogo deve verificar essa condição)
 
 encontrou_linha_livre_jogador1:
-    li t4, 1  # Marca o jogador 1 com "1" no tabuleiro
-    sw t4, 0(t6)
+    li t4, 1              # Coloca a peça do jogador 1 (1 representa o jogador 1)
+    sw t4, 0(t6)      # Atualiza a célula com o valor 1
 
 fim_atualizar_jogador1:
-    jr ra
+    jr ra                 # Retorna ao chamador
 
-# Atualização do tabuleiro para Jogador 2
 atualizar_tabuleiro_jogador2:
-    la t2, tabuleiro
-    mv t5, t0
-    li t1, 6
+    la t2, tabuleiro      # Carrega o endereço do tabuleiro
+    mv t5, t0             # t0 contém a coluna escolhida pelo jogador 2
+
+    li t1, 6              # Começa na linha mais baixa (linha 6)
 
 procura_linha_livre_jogador2:
     li t4, 7
-    mul t3, t1, t4
-    add t3, t3, t5
-    slli t3, t3, 2
+    mul t3, t1, t4         # Calcula o deslocamento para a linha atual (multiplica por 7)
+    add t3, t3, t5        # Soma o deslocamento da coluna (escolhida pelo jogador)
+    slli t3, t3, 2        # Multiplica por 4 para acessar o endereço da célula correta (4 bytes por célula)
     add t6, t2, t3
-    lw t4, 0(t6)
+    lw t4, 0(t6)      # Carrega o valor da célula (0, 1 ou 2)
 
-    beq t4, x0, encontrou_linha_livre_jogador2
-    addi t1, t1, -1
-    bnez t1, procura_linha_livre_jogador2
-    j fim_atualizar_jogador2
+    beq t4, x0, encontrou_linha_livre_jogador2   # Se a célula está vazia (0), pode colocar a peça
+    addi t1, t1, -1       # Move para a linha acima
+    bnez t1, procura_linha_livre_jogador2   # Continua subindo até achar uma célula vazia
+    j fim_atualizar_jogador2  # Se não encontrar uma célula livre, termina (o jogo deve verificar essa condição)
 
 encontrou_linha_livre_jogador2:
-    li t4, 2  # Marca o jogador 2 com "2" no tabuleiro
-    sw t4, 0(t6)
+    li t4, 2              # Coloca a peça do jogador 2 (2 representa o jogador 2)
+    sw t4, 0(t6)      # Atualiza a célula com o valor 2
 
 fim_atualizar_jogador2:
-    jr ra
-verificar_vitoria:
-    li t0, 0
+    jr ra                 # Retorna ao chamador
+
+verificar_jogada:
+    # Verifica se a jogada é válida (coluna dentro do limite e não cheia)
+    mv t4, t0           # t0 contém a coluna escolhida
+    li t1, 7            # Número de colunas
+    blt t4, t1, coluna_valida  # Verifica se a coluna está dentro do limite
+    li t1, 0            # Retorna inválido se a jogada não estiver no limite
     jr ra
 
-# Sair do programa
+coluna_valida:
+    # Verifica se a coluna ainda tem espaço para jogar
+    la t2, tabuleiro    # Carrega o tabuleiro
+    li t1, 0            # Inicia na linha 0
+    li t3, 6            # Número de linhas
+
+verifica_linha:
+    # Calcula o deslocamento no tabuleiro com base na linha e coluna
+    mul t5, t1, t1      # t5 = linha * 7 (multiplica pelo número de colunas)
+    add t5, t5, t4      # Soma o deslocamento da coluna
+    slli t5, t5, 2      # Multiplica por 4 para acessar o endereço da célula correta
+    lw t6, 0(t2)        # Carrega o valor da célula (0, 1 ou 2)
+    beq t6, x0, jogada_valida  # Se a célula estiver vazia, a jogada é válida
+
+    addi t1, t1, -1      # Move para a linha acima
+    bnez t1, verifica_linha  # Continua verificando até a última linha
+
+    # Se chegou aqui, a coluna está cheia
+
+jogada_valida:
+    li t1, 1            # Jogada válida
+    jr ra
+    
+
+verificar_vitoria:
+    mv t0, a0
+    mv t1, a1
+    mv t2, a2
+
+    # Simplificação da verificação de vitória
+    li a0, -1
+
+verificar_vitoria_horizontal:
+    la t2, tabuleiro      # Carrega o endereço do tabuleiro
+    li t0, 6              # Número de linhas
+
+verifica_linhas:
+    beq t0, x0, fim_verificacao   # Se t0 == 0, finaliza a verificação
+    li t1, 7                      # Reinicia o contador de colunas (7 colunas por linha)
+
+    li t4, 0                      # Contador de peças consecutivas
+    li t5, 0                      # Jogador atual
+
+verifica_colunas:
+    beq t1, x0, proxima_linha      # Se t1 == 0, passa para a próxima linha
+    addi t1, t1, -1               # Decrementa o número de colunas
+
+    lw t3, 0(t2)                  # Carrega o valor da célula atual
+    addi t2, t2, 4                # Move para a próxima célula (4 bytes por célula)
+
+    beq t3, x0, resetar_contador   # Se a célula estiver vazia, reseta o contador
+
+    beq t3, t5, continuar_contador # Se a célula pertence ao mesmo jogador, continua contando
+
+    li t4, 1                      # Se não for a mesma peça, reinicia o contador para 1
+    mv t5, t3                     # Atualiza o jogador atual (t5)
+
+    j verifica_colunas             # Continua verificando as colunas da linha
+
+continuar_contador:
+    addi t4, t4, 1                # Incrementa o contador de peças consecutivas
+    li t6, 4
+    beq t4, t6, jogador_venceu    # Se encontrar 4 consecutivos, declara a vitória
+
+    j verifica_colunas             # Continua verificando as colunas da linha
+
+resetar_contador:
+    li t4, 0                      # Reseta o contador de peças consecutivas
+    li t5, 0                      # Reseta o jogador atual
+
+    j verifica_colunas
+
+proxima_linha:
+    addi t0, t0, -1               # Avança para a próxima linha
+    j verifica_linhas
+
+fim_verificacao:
+    li t6, 0                      # Nenhuma vitória encontrada
+    jr ra
+
+jogador_venceu:
+    li a7, 4                      # Syscall para exibir a mensagem de vitória
+    li t1, 1
+    beq t5, t1, jogador1_venceu    # Se t5 == 1, o jogador 1 venceu
+    li t2, 2
+    beq t5, t2, jogador2_venceu    # Se t5 == 2, o jogador 2 venceu
+
+
+fim_jogo:
+    # Aqui você pode resetar o tabuleiro ou sair do jogo
+    jr ra   
+verificar_vitoria_vertical:
+    la t2, tabuleiro      # Carrega o endereço do tabuleiro
+    li t0, 7              # Número de colunas
+
+verificar_colunas_vertical:
+    beq t0, x0, fim_verificacao_vertical   # Se t0 == 0, finaliza a verificação
+    li t1, 6                               # Reinicia o contador de linhas (6 linhas por coluna)
+
+    li t4, 0                               # Contador de peças consecutivas
+    li t5, 0                               # Jogador atual
+
+verificar_linhas_vertical:
+    beq t1, x0, proxima_coluna_vertical     # Se t1 == 0, passa para a próxima coluna
+    addi t1, t1, -1                        # Decrementa o número de linhas
+
+    lw t3, 0(t2)                           # Carrega o valor da célula atual
+    addi t2, t2, 28                        # Move para a próxima célula verticalmente (7 colunas * 4 bytes)
+
+    beq t3, x0, resetar_contador_vertical   # Se a célula estiver vazia, reseta o contador
+
+    beq t3, t5, continuar_contador_vertical # Se a célula pertence ao mesmo jogador, continua contando
+
+    li t4, 1                               # Se não for a mesma peça, reinicia o contador para 1
+    mv t5, t3                              # Atualiza o jogador atual (t5)
+
+    j verificar_linhas_vertical             # Continua verificando as linhas da coluna
+
+continuar_contador_vertical:
+    addi t4, t4, 1                         # Incrementa o contador de peças consecutivas
+    li t6, 4                               # Verifica se o contador é 4
+    beq t4, t6, jogador_venceu              # Se encontrar 4 consecutivos, declara a vitória
+
+    j verificar_linhas_vertical             # Continua verificando as linhas da coluna
+
+resetar_contador_vertical:
+    li t4, 0                               # Reseta o contador de peças consecutivas
+    li t5, 0                               # Reseta o jogador atual
+
+    j verificar_linhas_vertical
+
+proxima_coluna_vertical:
+    addi t0, t0, -1                        # Avança para a próxima coluna
+    la t2, tabuleiro                       # Reinicia o endereço base da coluna
+    addi t2, t2, 4                         # Move para a próxima coluna
+    j verificar_colunas_vertical
+
+fim_verificacao_vertical:
+    li t6, 0                               # Nenhuma vitória encontrada
+    jr ra
+    
+verificar_vitoria_diagonal_ascendente:
+    la t2, tabuleiro      # Carrega o endereço do tabuleiro
+    li t0, 6              # Número de linhas (para o loop)
+
+verificar_linhas_diagonal_ascendente:
+    beq t0, x0, fim_verificacao_diagonal_ascendente   # Se t0 == 0, finaliza a verificação
+    li t1, 7                      # Reinicia o contador de colunas (7 colunas por linha)
+
+    li t4, 0                      # Contador de peças consecutivas
+    li t5, 0                      # Jogador atual
+
+verificar_colunas_diagonal_ascendente:
+    beq t1, x0, proxima_linha_diagonal_ascendente      # Se t1 == 0, passa para a próxima linha
+    addi t1, t1, -1               # Decrementa o número de colunas
+
+    lw t3, 0(t2)                  # Carrega o valor da célula atual
+    addi t2, t2, 28               # Move para a próxima célula verticalmente (7 colunas * 4 bytes)
+    addi t2, t2, -4               # Move diagonalmente (subindo)
+
+    beq t3, x0, resetar_contador_diagonal_ascendente   # Se a célula estiver vazia, reseta o contador
+
+    beq t3, t5, continuar_contador_diagonal_ascendente # Se a célula pertence ao mesmo jogador, continua contando
+
+    li t4, 1                      # Se não for a mesma peça, reinicia o contador para 1
+    mv t5, t3                     # Atualiza o jogador atual (t5)
+
+    j verificar_colunas_diagonal_ascendente             # Continua verificando as colunas da linha
+
+continuar_contador_diagonal_ascendente:
+    addi t4, t4, 1                # Incrementa o contador de peças consecutivas
+    li t6, 4
+    beq t4, t6, jogador_venceu    # Se encontrar 4 consecutivos, declara a vitória
+
+    j verificar_colunas_diagonal_ascendente             # Continua verificando as colunas da linha
+
+resetar_contador_diagonal_ascendente:
+    li t4, 0                      # Reseta o contador de peças consecutivas
+    li t5, 0                      # Reseta o jogador atual
+
+    j verificar_colunas_diagonal_ascendente
+
+proxima_linha_diagonal_ascendente:
+    addi t0, t0, -1               # Avança para a próxima linha
+    j verificar_linhas_diagonal_ascendente
+
+fim_verificacao_diagonal_ascendente:
+    li t6, 0                      # Nenhuma vitória encontrada
+    jr ra
+verificar_vitoria_diagonal_descendente:
+    la t2, tabuleiro      # Carrega o endereço do tabuleiro
+    li t0, 6              # Número de linhas (para o loop)
+
+verificar_linhas_diagonal_descendente:
+    beq t0, x0, fim_verificacao_diagonal_descendente   # Se t0 == 0, finaliza a verificação
+    li t1, 7                      # Reinicia o contador de colunas (7 colunas por linha)
+
+    li t4, 0                      # Contador de peças consecutivas
+    li t5, 0                      # Jogador atual
+
+verificar_colunas_diagonal_descendente:
+    beq t1, x0, proxima_linha_diagonal_descendente      # Se t1 == 0, passa para a próxima linha
+    addi t1, t1, -1               # Decrementa o número de colunas
+
+    lw t3, 0(t2)                  # Carrega o valor da célula atual
+    addi t2, t2, 28               # Move para a próxima célula verticalmente (7 colunas * 4 bytes)
+    addi t2, t2, 4                # Move diagonalmente (descendo)
+
+    beq t3, x0, resetar_contador_diagonal_descendente   # Se a célula estiver vazia, reseta o contador
+
+    beq t3, t5, continuar_contador_diagonal_descendente # Se a célula pertence ao mesmo jogador, continua contando
+
+    li t4, 1                      # Se não for a mesma peça, reinicia o contador para 1
+    mv t5, t3                     # Atualiza o jogador atual (t5)
+
+    j verificar_colunas_diagonal_descendente             # Continua verificando as colunas da linha
+
+continuar_contador_diagonal_descendente:
+    addi t4, t4, 1                # Incrementa o contador de peças consecutivas
+    li t6, 4
+    beq t4, t6, jogador_venceu    # Se encontrar 4 consecutivos, declara a vitória
+
+    j verificar_colunas_diagonal_descendente             # Continua verificando as colunas da linha
+
+resetar_contador_diagonal_descendente:
+    li t4, 0                      # Reseta o contador de peças consecutivas
+    li t5, 0                      # Reseta o jogador atual
+
+    j verificar_colunas_diagonal_descendente
+
+proxima_linha_diagonal_descendente:
+    addi t0, t0, -1               # Avança para a próxima linha
+    j verificar_linhas_diagonal_descendente
+
+fim_verificacao_diagonal_descendente:
+    li t6, 0                      # Nenhuma vitória encontrada
+    jr ra
+
+verificar_tabuleiro_cheio:
+    la t2, tabuleiro      # Carrega o endereço do tabuleiro
+    li t0, 42             # Número total de células no tabuleiro (7 colunas x 6 linhas)
+    li t3, 0              # Inicializa o contador para contar células vazias
+
+verificar_celulas_cheias:
+    beq t0, x0, fim_verificacao_tabuleiro_cheio   # Se t0 == 0, termina a verificação
+    lw t1, 0(t2)            # Carrega o valor da célula atual
+    addi t2, t2, 4          # Move para a próxima célula (cada célula ocupa 4 bytes)
+
+    beqz t1, tem_espaco_vazio    # Se a célula estiver vazia, tabuleiro não está cheio
+    j proxima_celula
+
+tem_espaco_vazio:
+    li a0, 0                # Tabuleiro não está cheio
+    jr ra
+
+proxima_celula:
+    addi t0, t0, -1         # Decrementa o número de células restantes a verificar
+    j verificar_celulas_cheias
+
+fim_verificacao_tabuleiro_cheio:
+    li a0, 1                # Tabuleiro está cheio
+    jr ra
+
 sair:
-    li a7, 10
+    li a7, 10                    
     ecall
+
+.data
+dash: .asciz "- "
+jogador1_peca: .asciz "X "
+jogador2_peca: .asciz "0 "
